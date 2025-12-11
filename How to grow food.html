@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to grow food - SEEDARCHIVE</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: white;
+            padding: 20px 5px;
+            min-height: 100vh;
+            overflow-y: auto;
+            padding-top: 60px;
+        }
+        
+        a, button, [onclick], [role="button"], .clickable, *[cursor="pointer"], *[style*="cursor: pointer"] {
+            cursor: pointer !important;
+        }
+
+        .top-tab {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: white;
+            border-bottom: 1px solid black;
+            z-index: 1000;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+
+        .scrolling-text-container {
+            display: flex;
+            white-space: nowrap;
+            animation: scrollText 30s linear infinite;
+            position: absolute;
+            left: 0;
+            will-change: transform;
+        }
+
+        .scrolling-text {
+            font-size: 16px;
+            color: black;
+            padding-right: 50px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        @keyframes scrollText {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .step-layout {
+            display: block;
+            flex: 1;
+            max-width: calc(100% - 215px);
+            margin-bottom: 100px;
+        }
+
+        .step-section {
+            margin-bottom: 40px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .step-section .step-title {
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .step-image {
+            width: 100%;
+            border: 1px solid black;
+            background: white;
+            margin-bottom: 20px;
+            aspect-ratio: 1;
+            max-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: visible;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .step-image img,
+        .step-image svg {
+            width: calc(100% - 40px);
+            height: calc(100% - 40px);
+            object-fit: contain;
+        }
+
+        .step-image.materials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 15px;
+            padding: 30px;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .step-image.materials-grid .material-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .step-image.materials-grid .material-item svg {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+
+        .step-image.materials-grid .material-item:hover svg {
+            transform: scale(1.15);
+        }
+
+        .step-image.materials-grid .material-item .material-name {
+            font-size: 14px;
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            text-align: center;
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .step-image.materials-grid .material-item:hover .material-name {
+            opacity: 1;
+        }
+
+        .step-image.materials-grid .material-item.bucket-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .step-image.materials-grid .material-item.bucket-item svg {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .step-image.materials-grid .material-item.bucket-item:hover svg {
+            transform: translateX(-3%) scale(1.15);
+        }
+
+        /* Plant potatoes section */
+        .plant-potatoes-box {
+            width: 100%;
+            border: 1px solid black;
+            background: white;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .plant-potatoes-steps {
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .plant-potatoes-step {
+            cursor: pointer;
+            padding: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .plant-potatoes-step:hover {
+            font-weight: bold;
+        }
+
+        .plant-potatoes-step.active {
+            font-weight: bold;
+        }
+
+        .plant-potatoes-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .plant-potatoes-image {
+            width: 100%;
+            aspect-ratio: 1;
+            max-height: 50vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            overflow: visible;
+            cursor: pointer;
+        }
+
+        .plant-potatoes-image svg {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+
+        .plant-potatoes-image svg.active {
+            display: block;
+        }
+
+        /* 确保所有SVG都是实线 */
+        #plant-potatoes .plant-potatoes-image svg * {
+            stroke-dasharray: none !important;
+            stroke-dashoffset: 0 !important;
+        }
+
+        /* 确保materials section的SVG都是实线 */
+        .step-image.materials-grid svg * {
+            stroke-dasharray: none !important;
+            stroke-dashoffset: 0 !important;
+        }
+
+        /* 确保所有step-image中的SVG都是实线 */
+        .step-image svg * {
+            stroke-dasharray: none !important;
+            stroke-dashoffset: 0 !important;
+        }
+
+        /* Introduction 部分的 SVG stroke-width 设置为 1px */
+        #introduction .step-image svg * {
+            stroke-width: 1px !important;
+        }
+
+        .plant-potatoes-description {
+            font-size: 18px;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        .step-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .step-content {
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* Step navigation panel */
+        .step-navigation {
+            display: block;
+            position: fixed;
+            top: 80px;
+            right: 50px;
+            width: 200px;
+            padding: 20px;
+            background: white;
+            border: 1px solid black;
+            box-sizing: border-box;
+            z-index: 100;
+        }
+
+        .step-nav-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .step-nav-item:hover {
+            font-weight: bold;
+        }
+
+        .step-nav-item.active {
+            font-weight: bold;
+        }
+
+        .step-nav-item .legend-text {
+            font-size: 12px;
+            color: black;
+            white-space: nowrap;
+        }
+
+        .step-nav-item .legend-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+            flex-shrink: 0;
+            box-sizing: border-box;
+            background: black;
+        }
+
+        .step-nav-item.active .legend-dot {
+            border: 1px solid black;
+            background: white !important;
+        }
+
+        /* Close button for back */
+        .step-nav-close {
+            position: relative;
+            width: 30px;
+            height: 30px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .step-nav-close::before,
+        .step-nav-close::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 1px;
+            background: black;
+        }
+
+        .step-nav-close::before {
+            transform: rotate(45deg);
+        }
+
+        .step-nav-close::after {
+            transform: rotate(-45deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="top-tab">
+        <div class="scrolling-text-container">
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="main-layout">
+            <!-- Step-by-step Layout -->
+            <div class="step-layout" id="step-layout">
+                <div class="step-section" id="introduction">
+                    <div class="step-image">
+                        <svg width="212" height="318" viewBox="0 0 212 318" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="124.33" y="16.1201" width="6.58408" height="211.514" transform="rotate(26.6056 124.33 16.1201)" fill="black"/>
+                            <path d="M106.546 0.169534C106.546 0.169534 130.748 10.9424 143.705 21.5434C152.845 29.0222 159.279 39.1484 159.279 39.1484C159.279 39.1484 140.542 25.4818 129.352 19.877C118.162 14.2721 97.3312 18.5661 97.3312 18.5661L106.546 0.169534Z" fill="black"/>
+                            <rect x="10" y="288" width="202" height="30" fill="black"/>
+                            <path d="M19 293C24.4333 281.705 21.2639 264.294 19 257" stroke="black" stroke-width="1"/>
+                            <path d="M20 257.796C17.0169 256.984 15.0508 254.223 8.13559 258.69C4.67797 260.923 0 260.337 0 256.659C0 252.981 3.30854 250 7.38983 250C11.4711 250 18.1695 254.304 20 257.796Z" fill="black"/>
+                            <path d="M19.1559 257.921C21.7635 256.041 24.1258 254.28 31.7498 256.066C35.5618 256.959 38.692 256.493 37.7773 252.934C36.8625 249.375 33.625 247 29.4058 247.659C24.7537 248.386 20.0114 253.87 19.1559 257.921Z" fill="black"/>
+                            <path d="M61 293C66.4333 281.705 63.2639 264.294 61 257" stroke="black" stroke-width="1"/>
+                            <path d="M62 257.796C59.0169 256.984 57.0508 254.223 50.1356 258.69C46.678 260.923 42 260.337 42 256.659C42 252.981 45.3085 250 49.3898 250C53.4711 250 60.1695 254.304 62 257.796Z" fill="black"/>
+                            <path d="M61.1559 257.921C63.7635 256.041 66.1258 254.28 73.7498 256.066C77.5618 256.959 80.692 256.493 79.7773 252.934C78.8625 249.375 75.625 247 71.4058 247.659C66.7537 248.386 62.0114 253.87 61.1559 257.921Z" fill="black"/>
+                            <path d="M187 293C192.433 281.705 189.264 264.294 187 257" stroke="black" stroke-width="1"/>
+                            <path d="M188 257.796C185.017 256.984 183.051 254.223 176.136 258.69C172.678 260.923 168 260.337 168 256.659C168 252.981 171.309 250 175.39 250C179.471 250 186.169 254.304 188 257.796Z" fill="black"/>
+                            <path d="M187.156 257.921C189.763 256.041 192.126 254.28 199.75 256.066C203.562 256.959 206.692 256.493 205.777 252.934C204.863 249.375 201.625 247 197.406 247.659C192.754 248.386 188.011 253.87 187.156 257.921Z" fill="black"/>
+                            <path d="M103 293C108.433 281.705 105.264 264.294 103 257" stroke="black" stroke-width="1"/>
+                            <path d="M104 257.796C101.017 256.984 99.0508 254.223 92.1356 258.69C88.678 260.923 84 260.337 84 256.659C84 252.981 87.3085 250 91.3898 250C95.4711 250 102.169 254.304 104 257.796Z" fill="black"/>
+                            <path d="M103.156 257.921C105.763 256.041 108.126 254.28 115.75 256.066C119.562 256.959 122.692 256.493 121.777 252.934C120.863 249.375 117.625 247 113.406 247.659C108.754 248.386 104.011 253.87 103.156 257.921Z" fill="black"/>
+                            <path d="M145 293C150.433 281.705 147.264 264.294 145 257" stroke="black" stroke-width="1"/>
+                            <path d="M146 257.796C143.017 256.984 141.051 254.223 134.136 258.69C130.678 260.923 126 260.337 126 256.659C126 252.981 129.309 250 133.39 250C137.471 250 144.169 254.304 146 257.796Z" fill="black"/>
+                            <path d="M145.156 257.921C147.763 256.041 150.126 254.28 157.75 256.066C161.562 256.959 164.692 256.493 163.777 252.934C162.863 249.375 159.625 247 155.406 247.659C150.754 248.386 146.011 253.87 145.156 257.921Z" fill="black"/>
+                            <rect x="115.188" y="151.112" width="39" height="65" transform="rotate(-39.1082 115.188 151.112)" fill="black"/>
+                            <rect x="139.728" y="133.741" width="23" height="6" transform="rotate(-39.1082 139.728 133.741)" fill="black"/>
+                            <rect x="152.92" y="123.018" width="6" height="28" transform="rotate(-39.1082 152.92 123.018)" fill="black"/>
+                            <path d="M109.9 157.398L123.157 146.622L125.861 163.49L109.9 157.398Z" fill="black"/>
+                        </svg>
+                    </div>
+                    <div class="step-title">INTRODUCTION</div>
+                    <div class="step-content">
+                        After the collapse of civilization or a major disaster, the disruption of the food supply chain will become the most severe survival challenge. Mastering basic agricultural skills is not only about personal survival but also the cornerstone for rebuilding human civilization. This guide focuses on low-tech, high-efficiency planting methods that can be implemented even in situations with scarce resources and limited tools. Choosing the right crops is crucial - what we need are nutrient-dense, easy-to-grow varieties that can be self-propagated. This guide will center on potatoes, beans, and leafy vegetables, as these three types of crops can provide the basic combination of carbohydrates, proteins, and vitamins.
+                    </div>
+                </div>
+                <div class="step-section" id="materials-requirement">
+                    <div class="step-image materials-grid">
+                        <div class="material-item">
+                            <svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1{fill:#000;stroke:#000;stroke-miterlimit:10;stroke-width:4px;}.cls-2{fill:none;stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><polygon class="cls-1" points="299.47 374.23 299.47 406.49 323.67 406.49 323.67 616.2 404.33 616.2 404.33 406.49 428.52 406.49 428.52 374.23 299.47 374.23"/><path class="cls-2" d="M404.33,67.73l-44.4,53.28c-23.43,28.12-36.26,63.56-36.26,100.16v153.07h80.66V67.73Z"/></svg>
+                            <div class="material-name">KNIFE</div>
+                        </div>
+                        <div class="material-item">
+                            <svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1{stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><path class="cls-1" d="M526.4,435.07c0,92.84-75.26,168.09-168.09,168.09s-168.09-75.26-168.09-168.09S358.3,112.89,358.3,112.89c0,0,168.09,229.34,168.09,322.18Z"/></svg>
+                            <div class="material-name">WATER</div>
+                        </div>
+                        <div class="material-item bucket-item">
+                            <svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720" style="display: block; margin: 0 auto; transform: translateX(-3%);"><defs><style>.cls-1{fill:none;}.cls-1,.cls-2{stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><rect class="cls-2" x="208.21" y="267.28" width="341.65" height="384.35"/><rect class="cls-1" x="197.53" y="220.75" width="363" height="46.53"/><path class="cls-1" d="M207.41,219.78c0-94.34,76.48-170.82,170.82-170.82s170.82,76.48,170.82,170.82"/></svg>
+                            <div class="material-name">BUCKET</div>
+                        </div>
+                        <div class="material-item">
+                            <svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1{fill:none;}.cls-1,.cls-2{stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><path class="cls-2" d="M510.46,410.81v-115.75c0-3.3,1.87-5.98,4.19-5.98h98.13c1.26,0,2.45.81,3.24,2.2l50.89,61.66-50.89,61.66c-.8,1.39-1.99,2.2-3.24,2.2h-98.13c-2.31,0-4.19-2.68-4.19-5.98Z"/><path class="cls-1" d="M129.06,363.25h381.4v-20.62H129.06c-4.47-15.56-18.8-26.94-35.79-26.94-20.57,0-37.25,16.68-37.25,37.25s16.68,37.25,37.25,37.25c16.99,0,31.32-11.38,35.79-26.94Z"/><circle class="cls-1" cx="93.27" cy="352.94" r="28.29"/></svg>
+                            <div class="material-name">SHOVEL</div>
+                        </div>
+                        <div class="material-item">
+                            <svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1{stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><ellipse class="cls-1" cx="131.49" cy="327.1" rx="56.75" ry="76.55"/><path class="cls-1" d="M313.66,414.04c-31.03,29.89-74.15,36.82-96.31,15.46-22.16-21.35-14.98-62.9,16.05-92.79,31.03-29.89,74.15-36.82,96.31-15.46,22.16,21.35,14.98,62.9-16.05,92.79Z"/><path class="cls-1" d="M234.34,503.62c19.26,37.99,12.04,79.52-16.12,92.78-28.16,13.25-66.6-6.8-85.86-44.78-19.26-37.99-12.04-79.52,16.12-92.78,28.16-13.25,66.6,6.8,85.86,44.78Z"/><path class="cls-1" d="M386.64,528.7c-14.26,39.98-49.85,64.43-79.49,54.62-29.64-9.82-42.11-50.18-27.84-90.16,14.26-39.98,49.85-64.43,79.49-54.62,29.64,9.82,42.11,50.18,27.84,90.16Z"/><ellipse class="cls-1" cx="391.97" cy="185.49" rx="56.75" ry="76.55"/><path class="cls-1" d="M574.14,272.43c-31.03,29.89-74.15,36.82-96.31,15.46-22.16-21.35-14.98-62.9,16.05-92.79,31.03-29.89,74.15-36.82,96.31-15.46,22.16,21.35,14.98,62.9-16.05,92.79Z"/><path class="cls-1" d="M494.82,362.01c19.26,37.99,12.04,79.52-16.12,92.78-28.16,13.25-66.6-6.8-85.86-44.78-19.26-37.99-12.04-79.52,16.12-92.78,28.16-13.25,66.6,6.8,85.86,44.78Z"/><path class="cls-1" d="M647.12,387.09c-14.26,39.98-49.85,64.43-79.49,54.62-29.64-9.82-42.11-50.18-27.84-90.16,14.26-39.98,49.85-64.43,79.49-54.62,29.64,9.82,42.11,50.18,27.84,90.16Z"/><path class="cls-1" d="M290.96,190.07c19.26,37.99,12.04,79.52-16.12,92.78-28.16,13.25-66.6-6.8-85.86-44.78-19.26-37.99-12.04-79.52,16.12-92.78,28.16-13.25,66.6,6.8,85.86,44.78Z"/><path class="cls-1" d="M520.53,489.25c39.66-15.13,81.37-3.96,93.17,24.95,11.79,28.91-10.79,64.61-50.45,79.74-39.66,15.13-81.37,3.96-93.17-24.95-11.79-28.91,10.79-64.61,50.45-79.74Z"/></svg>
+                            <div class="material-name">DRY BEANS</div>
+                        </div>
+                        <div class="material-item">
+                            <svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1{stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><path class="cls-1" d="M421.51,116.61c-58.68-53.69-95.8-52.6-104.16-52.08-74.15,4.58-122.49,101.71-138.88,156.24-27.64,91.94,2.98,171.12,17.36,208.32,18.08,46.77,70.98,183.59,173.6,190.96,76.12,5.46,144.2-62.85,173.6-121.52,70.85-141.43-41.93-309.1-121.52-381.91ZM247.91,342.29c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM282.63,168.69c0-9.59,7.77-17.36,17.36-17.36s17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36-17.36-7.77-17.36-17.36ZM317.35,463.8c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM386.79,342.29c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM421.51,585.32c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM456.23,255.49c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM515.57,384.95c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36Z"/></svg>
+                            <div class="material-name">POTATO TUBER</div>
+                        </div>
+                    </div>
+                    <div class="step-title">MATERIALS REQUIREMENT</div>
+                </div>
+                <div class="step-section" id="plant-potatoes">
+                    <div class="plant-potatoes-box">
+                        <div class="plant-potatoes-steps">
+                            <div class="plant-potatoes-step active" onclick="showPlantPotatoesStep(1, this)">STEP 1</div>
+                            <div class="plant-potatoes-step" onclick="showPlantPotatoesStep(2, this)">STEP 2</div>
+                            <div class="plant-potatoes-step" onclick="showPlantPotatoesStep(3, this)">STEP 3</div>
+                            <div class="plant-potatoes-step" onclick="showPlantPotatoesStep(4, this)">STEP 4</div>
+                            <div class="plant-potatoes-step" onclick="showPlantPotatoesStep(5, this)">STEP 5</div>
+                            <div class="plant-potatoes-step" onclick="showPlantPotatoesStep(6, this)">STEP 6</div>
+                        </div>
+                        <div class="plant-potatoes-content">
+                            <div class="plant-potatoes-image">
+                                <svg id="plant-step-1" class="active" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1{fill:none;stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><path class="cls-1" d="M421.51,116.61c-58.68-53.69-95.8-52.6-104.16-52.08-74.15,4.58-122.49,101.71-138.88,156.24-27.64,91.94,2.98,171.12,17.36,208.32,18.08,46.77,70.98,183.59,173.6,190.96,76.12,5.46,144.2-62.85,173.6-121.52,70.85-141.43-41.93-309.1-121.52-381.91ZM247.91,342.29c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM282.63,168.69c0-9.59,7.77-17.36,17.36-17.36s17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36-17.36-7.77-17.36-17.36ZM317.35,463.8c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM386.79,342.29c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM421.51,585.32c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM456.23,255.49c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM515.57,384.95c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36Z"/></svg>
+                                <svg id="plant-step-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1,.cls-2,.cls-3,.cls-4{fill:none;stroke:#000;stroke-miterlimit:10;stroke-width:4px;stroke-dasharray:none;}</style></defs><path class="cls-2" d="M421.74,128.56c-58.68-53.69-95.8-52.6-104.16-52.08-74.15,4.58-122.49,101.71-138.88,156.24-27.64,91.94,2.98,171.12,17.36,208.32,18.08,46.77,70.98,183.59,173.6,190.96,76.12,5.46,144.2-62.85,173.6-121.52,70.85-141.43-41.93-309.1-121.52-381.91ZM248.14,354.24c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM282.86,180.64c0-9.59,7.77-17.36,17.36-17.36s17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36-17.36-7.77-17.36-17.36ZM317.58,475.76c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM387.02,354.24c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM421.74,597.27c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM456.46,267.44c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36ZM515.8,396.9c-9.59,0-17.36-7.77-17.36-17.36s7.77-17.36,17.36-17.36,17.36,7.77,17.36,17.36-7.77,17.36-17.36,17.36Z"/><path class="cls-2" d="M435.75,144.61c-.32.34-1.02.84-2.01,1.48"/><path class="cls-3" d="M428.99,148.9c-10,5.65-28.18,14.83-36.74,19.12"/><path class="cls-2" d="M389.78,169.25c-1.42.71-2.24,1.11-2.24,1.11l1.55,1.96"/><line class="cls-1" x1="392.21" y1="176.27" x2="434.28" y2="229.49"/><path class="cls-2" d="M435.84,231.46l1.55,1.96s.79-.42,2.19-1.19"/><path class="cls-4" d="M443.71,229.93c8.92-4.99,25.51-14.56,38.19-23.52"/><path class="cls-2" d="M483.82,205.04c.69-.5,1.36-.99,2.01-1.48"/></svg>
+                                <svg id="plant-step-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1,.cls-2{fill:none;stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><rect class="cls-2" x="267.56" y="285.98" width="186.06" height="138.57"/><circle class="cls-1" cx="301.68" cy="320.18" r="18.92"/><circle class="cls-1" cx="369.95" cy="365.42" r="21.39"/><circle class="cls-1" cx="433.29" cy="316.89" r="10.69"/></svg>
+                                <svg id="plant-step-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1,.cls-2{fill:none;stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><rect class="cls-2" x="183.73" y="264.64" width="351.79" height="395.76"/><rect class="cls-2" x="172.74" y="216.73" width="373.77" height="47.91"/><path class="cls-2" d="M183.74,215.73c0-97.14,78.75-175.89,175.89-175.89s175.89,78.75,175.89,175.89"/><circle class="cls-2" cx="202.43" cy="644.67" r="15.79"/><circle class="cls-2" cx="237" cy="644.67" r="15.79"/><circle class="cls-2" cx="271.35" cy="644.67" r="15.79"/><circle class="cls-2" cx="305.92" cy="644.67" r="15.79"/><circle class="cls-2" cx="341.28" cy="644.67" r="15.79"/><circle class="cls-2" cx="375.85" cy="644.67" r="15.79"/><circle class="cls-2" cx="410.2" cy="644.67" r="15.79"/><circle class="cls-2" cx="444.77" cy="644.67" r="15.79"/><circle class="cls-2" cx="481.55" cy="644.67" r="15.79"/><circle class="cls-2" cx="516.12" cy="644.67" r="15.79"/><polygon class="cls-2" points="532.38 627.18 187.54 627.18 187.54 357 222.21 365.47 252.2 357 300.93 364.53 359.03 357 404 365.47 452.73 357 503.33 366.42 532.38 357 532.38 627.18"/><rect class="cls-2" x="319.53" y="374.32" width="80.2" height="59.73"/><circle class="cls-1" cx="359.63" cy="389.06" r="8.15"/><circle class="cls-1" cx="340.41" cy="413.86" r="9.22"/><circle class="cls-1" cx="379.91" cy="399.35" r="4.61"/><path class="cls-2" d="M372.73,324.05c0,7.24-5.87,13.11-13.11,13.11s-13.11-5.87-13.11-13.11,13.11-25.12,13.11-25.12c0,0,13.11,17.88,13.11,25.12h0Z"/><path class="cls-2" d="M372.73,270.46c0,7.24-5.87,13.11-13.11,13.11s-13.11-5.87-13.11-13.11,13.11-25.12,13.11-25.12c0,0,13.11,17.88,13.11,25.12h0Z"/><path class="cls-2" d="M372.73,212.3c0,7.24-5.87,13.11-13.11,13.11s-13.11-5.87-13.11-13.11,13.11-25.12,13.11-25.12c0,0,13.11,17.88,13.11,25.12h0Z"/></svg>
+                                <svg id="plant-step-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1,.cls-2{fill:none;stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><path class="cls-2" d="M395.28,316.93c5.66-5.45,7.97-13.95,6.53-21.66,0-.05-.04-.09-.07-.11-6.03-3.28-13.5-2.37-19.15,3.08-5.63,5.42-3.14,11.09-13.74,28.5-.08.12.03.28.15.22,16.52-8.7,20.65-4.62,26.28-10.04Z"/><path class="cls-2" d="M348.18,299.92c-7.6-2.93-14.8-6.07-20.31-3.16.11,7.03,5.64,13.25,11.19,19.97,5.65,6.85,20.93,9.86,29.77,10.1-3.99-9.17-12.9-23.94-20.64-26.92Z"/><path class="cls-1" d="M360.19,375.91c-.15-3.53-.16-10.64,1.97-18.88,1.56-6.01,3.84-7.64,5.44-13.45,1.84-6.65,1.62-13.07,1.19-17.26"/><rect class="cls-2" x="184.09" y="267.53" width="351.79" height="395.76"/><rect class="cls-2" x="173.09" y="219.62" width="373.77" height="47.91"/><path class="cls-2" d="M183.26,218.62c0-97.14,78.75-175.89,175.89-175.89s175.89,78.75,175.89,175.89"/><circle class="cls-2" cx="202.93" cy="647.56" r="15.79"/><circle class="cls-2" cx="237.5" cy="647.56" r="15.79"/><circle class="cls-2" cx="271.85" cy="647.56" r="15.79"/><circle class="cls-2" cx="306.42" cy="647.56" r="15.79"/><circle class="cls-2" cx="341.78" cy="647.56" r="15.79"/><circle class="cls-2" cx="376.35" cy="647.56" r="15.79"/><circle class="cls-2" cx="410.7" cy="647.56" r="15.79"/><circle class="cls-2" cx="445.27" cy="647.56" r="15.79"/><circle class="cls-2" cx="482.05" cy="647.56" r="15.79"/><circle class="cls-2" cx="516.62" cy="647.56" r="15.79"/><rect class="cls-2" x="319.97" y="377.21" width="80.2" height="59.73"/><circle class="cls-1" cx="334.68" cy="391.95" r="8.15"/><circle class="cls-1" cx="364.11" cy="411.45" r="9.22"/><circle class="cls-1" cx="391.4" cy="390.53" r="4.61"/><polygon class="cls-2" points="532.38 627.18 187.54 627.18 187.54 357 222.21 365.47 252.2 357 300.93 364.53 359.03 357 404 365.47 452.73 357 503.33 366.42 532.38 357 532.38 627.18"/><path class="cls-2" d="M395.28,316.93c5.66-5.45,7.97-13.95,6.53-21.66,0-.05-.04-.09-.07-.11-6.03-3.28-13.5-2.37-19.15,3.08-5.63,5.42-3.14,11.09-13.74,28.5-.08.12.03.28.15.22,16.52-8.7,20.65-4.62,26.28-10.04Z"/><path class="cls-2" d="M348.18,299.92c-7.6-2.93-14.8-6.07-20.31-3.16.11,7.03,5.64,13.25,11.19,19.97,5.65,6.85,20.93,9.86,29.77,10.1-3.99-9.17-12.9-23.94-20.64-26.92Z"/><path class="cls-1" d="M360.19,375.91c-.15-3.53-.16-10.64,1.97-18.88,1.56-6.01,3.84-7.64,5.44-13.45,1.84-6.65,1.62-13.07,1.19-17.26"/><rect class="cls-2" x="184.09" y="267.53" width="351.79" height="395.76"/><rect class="cls-2" x="173.09" y="219.62" width="373.77" height="47.91"/><path class="cls-2" d="M183.26,218.62c0-97.14,78.75-175.89,175.89-175.89s175.89,78.75,175.89,175.89"/><circle class="cls-2" cx="202.93" cy="647.56" r="15.79"/><circle class="cls-2" cx="237.5" cy="647.56" r="15.79"/><circle class="cls-2" cx="271.85" cy="647.56" r="15.79"/><circle class="cls-2" cx="306.42" cy="647.56" r="15.79"/><circle class="cls-2" cx="341.78" cy="647.56" r="15.79"/><circle class="cls-2" cx="376.35" cy="647.56" r="15.79"/><circle class="cls-2" cx="410.7" cy="647.56" r="15.79"/><circle class="cls-2" cx="445.27" cy="647.56" r="15.79"/><circle class="cls-2" cx="482.05" cy="647.56" r="15.79"/><circle class="cls-2" cx="516.62" cy="647.56" r="15.79"/><polygon class="cls-2" points="532.38 627.18 187.54 627.18 187.54 357 222.21 365.47 252.2 357 300.93 364.53 359.03 357 404 365.47 452.73 357 503.33 366.42 532.38 357 532.38 627.18"/></svg>
+                                <svg id="plant-step-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1,.cls-2{fill:none;stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><path class="cls-1" d="M370.4,380.12c-5.3-4.85-8.65-4.75-9.4-4.7-6.69.41-11.05,9.18-12.53,14.1-2.49,8.3.27,15.44,1.57,18.8,1.63,4.22,6.41,16.57,15.67,17.23,6.87.49,13.01-5.67,15.67-10.97,6.39-12.76-3.78-27.9-10.97-34.47ZM354.73,400.49c-.87,0-1.57-.7-1.57-1.57s.7-1.57,1.57-1.57,1.57.7,1.57,1.57-.7,1.57-1.57,1.57ZM357.86,384.82c0-.87.7-1.57,1.57-1.57s1.57.7,1.57,1.57-.7,1.57-1.57,1.57-1.57-.7-1.57-1.57ZM361,411.46c-.87,0-1.57-.7-1.57-1.57s.7-1.57,1.57-1.57,1.57.7,1.57,1.57-.7,1.57-1.57,1.57ZM367.26,400.49c-.87,0-1.57-.7-1.57-1.57s.7-1.57,1.57-1.57,1.57.7,1.57,1.57-.7,1.57-1.57,1.57ZM370.4,422.43c-.87,0-1.57-.7-1.57-1.57s.7-1.57,1.57-1.57,1.57.7,1.57,1.57-.7,1.57-1.57,1.57ZM373.53,392.66c-.87,0-1.57-.7-1.57-1.57s.7-1.57,1.57-1.57,1.57.7,1.57,1.57-.7,1.57-1.57,1.57ZM378.88,404.34c-.87,0-1.57-.7-1.57-1.57s.7-1.57,1.57-1.57,1.57.7,1.57,1.57-.7,1.57-1.57,1.57Z"/><path class="cls-1" d="M345.75,388.46c.1-7.18-2.2-9.61-2.74-10.15-4.76-4.72-14.21-2.15-18.87.01-7.86,3.65-11.36,10.47-13,13.67-2.07,4.03-8.12,15.8-2.46,23.16,4.2,5.46,12.89,5.95,18.61,4.41,13.79-3.71,18.32-21.37,18.46-31.11ZM320.12,390.29c-.58-.65-.52-1.64.13-2.21s1.64-.52,2.21.13.52,1.64-.13,2.21-1.64.52-2.21-.13ZM333.9,382.22c.65-.58,1.64-.52,2.21.13s.52,1.64-.13,2.21-1.64.52-2.21-.13-.52-1.64.13-2.21ZM316.09,402.27c-.58-.65-.52-1.64.13-2.21s1.64-.52,2.21.13.52,1.64-.13,2.21-1.64.52-2.21-.13ZM328.45,399.66c-.58-.65-.52-1.64.13-2.21s1.64-.52,2.21.13.52,1.64-.13,2.21-1.64.52-2.21-.13ZM314.15,416.58c-.58-.65-.52-1.64.13-2.21s1.64-.52,2.21.13.52,1.64-.13,2.21-1.64.52-2.21-.13ZM338.47,399.13c-.58-.65-.52-1.64.13-2.21s1.64-.52,2.21.13.52,1.64-.13,2.21-1.64.52-2.21-.13ZM333.3,410.9c-.58-.65-.52-1.64.13-2.21s1.64-.52,2.21.13.52,1.64-.13,2.21-1.64.52-2.21-.13Z"/><path class="cls-1" d="M400.61,376.23c-6.62-2.78-9.74-1.56-10.43-1.26-6.16,2.64-7.31,12.37-7.05,17.5.45,8.65,5.46,14.45,7.81,17.17,2.96,3.42,11.61,13.44,20.56,10.95,6.63-1.85,10.34-9.73,11.06-15.6,1.72-14.17-12.96-24.99-21.94-28.76ZM392.72,400.69c-.81.29-1.71-.13-2-.95s.13-1.71.95-2,1.71.13,2,.95-.13,1.71-.95,2ZM390.39,384.88c-.29-.81.13-1.71.95-2s1.71.13,2,.95-.13,1.71-.95,2-1.71-.13-2-.95ZM402.31,408.9c-.81.29-1.71-.13-2-.95s.13-1.71.95-2,1.71.13,2,.95-.13,1.71-.95,2ZM404.52,396.46c-.81.29-1.71-.13-2-.95s.13-1.71.95-2,1.71.13,2,.95-.13,1.71-.95,2ZM414.86,416.06c-.81.29-1.71-.13-2-.95s.13-1.71.95-2,1.71.13,2,.95-.13,1.71-.95,2ZM407.78,386.98c-.81.29-1.71-.13-2-.95s.13-1.71.95-2,1.71.13,2,.95-.13,1.71-.95,2ZM416.76,396.17c-.81.29-1.71-.13-2-.95s.13-1.71.95-2,1.71.13,2,.95-.13,1.71-.95,2Z"/><path class="cls-2" d="M395.28,316.93c5.66-5.45,7.97-13.95,6.53-21.66,0-.05-.04-.09-.07-.11-6.03-3.28-13.5-2.37-19.15,3.08-5.63,5.42-3.14,11.09-13.74,28.5-.08.12.03.28.15.22,16.52-8.7,20.65-4.62,26.28-10.04Z"/><path class="cls-2" d="M348.18,299.92c-7.6-2.93-14.8-6.07-20.31-3.16.11,7.03,5.64,13.25,11.19,19.97,5.65,6.85,20.93,9.86,29.77,10.1-3.99-9.17-12.9-23.94-20.64-26.92Z"/><path class="cls-1" d="M360.19,375.91c-.15-3.53-.16-10.64,1.97-18.88,1.56-6.01,3.84-7.64,5.44-13.45,1.84-6.65,1.62-13.07,1.19-17.26"/><rect class="cls-2" x="184.09" y="267.53" width="351.79" height="395.76"/><rect class="cls-2" x="173.09" y="219.62" width="373.77" height="47.91"/><path class="cls-2" d="M183.26,218.62c0-97.14,78.75-175.89,175.89-175.89s175.89,78.75,175.89,175.89"/><circle class="cls-2" cx="202.93" cy="647.56" r="15.79"/><circle class="cls-2" cx="237.5" cy="647.56" r="15.79"/><circle class="cls-2" cx="271.85" cy="647.56" r="15.79"/><circle class="cls-2" cx="306.42" cy="647.56" r="15.79"/><circle class="cls-2" cx="341.78" cy="647.56" r="15.79"/><circle class="cls-2" cx="376.35" cy="647.56" r="15.79"/><circle class="cls-2" cx="410.7" cy="647.56" r="15.79"/><circle class="cls-2" cx="445.27" cy="647.56" r="15.79"/><circle class="cls-2" cx="482.05" cy="647.56" r="15.79"/><circle class="cls-2" cx="516.62" cy="647.56" r="15.79"/><polygon class="cls-2" points="532.38 627.18 187.54 627.18 187.54 357 222.21 365.47 252.2 357 300.93 364.53 359.03 357 404 365.47 452.73 357 503.33 366.42 532.38 357 532.38 627.18"/><path class="cls-2" d="M395.28,316.93c5.66-5.45,7.97-13.95,6.53-21.66,0-.05-.04-.09-.07-.11-6.03-3.28-13.5-2.37-19.15,3.08-5.63,5.42-3.14,11.09-13.74,28.5-.08.12.03.28.15.22,16.52-8.7,20.65-4.62,26.28-10.04Z"/><path class="cls-2" d="M348.18,299.92c-7.6-2.93-14.8-6.07-20.31-3.16.11,7.03,5.64,13.25,11.19,19.97,5.65,6.85,20.93,9.86,29.77,10.1-3.99-9.17-12.9-23.94-20.64-26.92Z"/><path class="cls-1" d="M360.19,375.91c-.15-3.53-.16-10.64,1.97-18.88,1.56-6.01,3.84-7.64,5.44-13.45,1.84-6.65,1.62-13.07,1.19-17.26"/><rect class="cls-2" x="184.09" y="267.53" width="351.79" height="395.76"/><rect class="cls-2" x="173.09" y="219.62" width="373.77" height="47.91"/><path class="cls-2" d="M183.26,218.62c0-97.14,78.75-175.89,175.89-175.89s175.89,78.75,175.89,175.89"/><circle class="cls-2" cx="202.93" cy="647.56" r="15.79"/><circle class="cls-2" cx="237.5" cy="647.56" r="15.79"/><circle class="cls-2" cx="271.85" cy="647.56" r="15.79"/><circle class="cls-2" cx="306.42" cy="647.56" r="15.79"/><circle class="cls-2" cx="341.78" cy="647.56" r="15.79"/><circle class="cls-2" cx="376.35" cy="647.56" r="15.79"/><circle class="cls-2" cx="410.7" cy="647.56" r="15.79"/><circle class="cls-2" cx="445.27" cy="647.56" r="15.79"/><circle class="cls-2" cx="482.05" cy="647.56" r="15.79"/><circle class="cls-2" cx="516.62" cy="647.56" r="15.79"/><polygon class="cls-2" points="532.38 627.18 187.54 627.18 187.54 357 222.21 365.47 252.2 357 300.93 364.53 359.03 357 404 365.47 452.73 357 503.33 366.42 532.38 357 532.38 627.18"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="step-title">PLANT POTATOES</div>
+                    <div class="plant-potatoes-description" id="plant-description">Prepare a potato.</div>
+                </div>
+                <div class="step-section" id="plant-beans">
+                    <div class="plant-potatoes-box">
+                        <div class="plant-potatoes-steps">
+                            <div class="plant-potatoes-step active" onclick="showPlantBeansStep(1, this)">STEP 1</div>
+                            <div class="plant-potatoes-step" onclick="showPlantBeansStep(2, this)">STEP 2</div>
+                            <div class="plant-potatoes-step" onclick="showPlantBeansStep(3, this)">STEP 3</div>
+                            <div class="plant-potatoes-step" onclick="showPlantBeansStep(4, this)">STEP 4</div>
+                        </div>
+                        <div class="plant-potatoes-content">
+                            <div class="plant-potatoes-image" id="plant-beans-image">
+                                <svg id="bean-step-1" class="active" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1{fill:none;stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><ellipse class="cls-1" cx="118.02" cy="325.16" rx="56.75" ry="76.55"/><path class="cls-1" d="M300.19,412.1c-31.03,29.89-74.15,36.82-96.31,15.46-22.16-21.35-14.98-62.9,16.05-92.79,31.03-29.89,74.15-36.82,96.31-15.46,22.16,21.35,14.98,62.9-16.05,92.79h0Z"/><path class="cls-1" d="M220.87,501.68c19.26,37.99,12.04,79.52-16.12,92.78-28.16,13.25-66.6-6.8-85.86-44.78-19.26-37.99-12.04-79.52,16.12-92.78,28.16-13.25,66.6,6.8,85.86,44.78Z"/><path class="cls-1" d="M373.17,526.76c-14.26,39.98-49.85,64.43-79.49,54.62-29.64-9.82-42.11-50.18-27.84-90.16,14.26-39.98,49.85-64.43,79.49-54.62,29.64,9.82,42.11,50.18,27.84,90.16Z"/><ellipse class="cls-1" cx="378.5" cy="183.55" rx="56.75" ry="76.55"/><path class="cls-1" d="M560.67,270.49c-31.03,29.89-74.15,36.82-96.31,15.46-22.16-21.35-14.98-62.9,16.05-92.79,31.03-29.89,74.15-36.82,96.31-15.46,22.16,21.35,14.98,62.9-16.05,92.79h0Z"/><path class="cls-1" d="M481.35,360.07c19.26,37.99,12.04,79.52-16.12,92.78-28.16,13.25-66.6-6.8-85.86-44.78-19.26-37.99-12.04-79.52,16.12-92.78,28.16-13.25,66.6,6.8,85.86,44.78Z"/><path class="cls-1" d="M277.49,188.13c19.26,37.99,12.04,79.52-16.12,92.78-28.16,13.25-66.6-6.8-85.86-44.78-19.26-37.99-12.04-79.52,16.12-92.78,28.16-13.25,66.6,6.8,85.86,44.78Z"/><path class="cls-1" d="M507.06,487.31c39.66-15.13,81.37-3.96,93.17,24.95,11.79,28.91-10.79,64.61-50.45,79.74-39.66,15.13-81.37,3.96-93.17-24.95-11.79-28.91,10.79-64.61,50.45-79.74Z"/></svg>
+                                <svg id="bean-step-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1{fill:none;stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><path class="cls-1" d="M218.27,635.27c-3.12,8.75-10.91,14.1-17.4,11.96-6.49-2.15-9.22-10.98-6.09-19.73,3.12-8.75,10.91-14.1,17.4-11.96,6.49,2.15,9.22,10.98,6.09,19.73Z"/><rect class="cls-1" x="181.73" y="261.59" width="351.79" height="395.76"/><rect class="cls-1" x="170.74" y="213.67" width="373.77" height="47.91"/><path class="cls-1" d="M181.74,212.68c0-97.14,78.75-175.89,175.89-175.89s175.89,78.75,175.89,175.89"/><path class="cls-1" d="M182.19,577.31c14.59,9.49,36.24,20.11,60.04,16.94,24.55-3.27,27.41-18.02,52.38-23.72,36.44-8.33,48.73,18.89,91.98,15.81,35.92-2.56,42.31-22.39,76.65-23.72,29.17-1.13,53.76,12.06,70.26,23.72"/><path class="cls-1" d="M275.65,634.38c-3.12,8.75-10.91,14.1-17.4,11.96-6.49-2.15-9.22-10.98-6.09-19.73,3.12-8.75,10.91-14.1,17.4-11.96,6.49,2.15,9.22,10.98,6.09,19.73Z"/><path class="cls-1" d="M331.61,634.25c-3.12,8.75-10.91,14.1-17.4,11.96-6.49-2.15-9.22-10.98-6.09-19.73,3.12-8.75,10.91-14.1,17.4-11.96,6.49,2.15,9.22,10.98,6.09,19.73Z"/><path class="cls-1" d="M389,633.36c-3.12,8.75-10.91,14.1-17.4,11.96-6.49-2.15-9.22-10.98-6.09-19.73,3.12-8.75,10.91-14.1,17.4-11.96,6.49,2.15,9.22,10.98,6.09,19.73Z"/><path class="cls-1" d="M446.09,633.13c-3.12,8.75-10.91,14.1-17.4,11.96-6.49-2.15-9.22-10.98-6.09-19.73,3.12-8.75,10.91-14.1,17.4-11.96,6.49,2.15,9.22,10.98,6.09,19.73Z"/><path class="cls-1" d="M503.48,632.24c-3.12,8.75-10.91,14.1-17.4,11.96-6.49-2.15-9.22-10.98-6.09-19.73,3.12-8.75,10.91-14.1,17.4-11.96,6.49,2.15,9.22,10.98,6.09,19.73Z"/></svg>
+                                <svg id="bean-step-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1{fill:none;stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><rect class="cls-1" x="181.73" y="261.59" width="351.79" height="395.76"/><rect class="cls-1" x="170.74" y="213.67" width="373.77" height="47.91"/><path class="cls-1" d="M181.74,212.68c0-97.14,78.75-175.89,175.89-175.89s175.89,78.75,175.89,175.89"/><polygon class="cls-1" points="533.59 656.14 182.13 656.14 182.13 385.96 217.46 394.43 248.03 385.96 297.69 393.49 356.9 385.96 402.75 394.43 452.41 385.96 503.98 395.37 533.59 385.96 533.59 656.14"/><path class="cls-1" d="M235.25,426.29c-2.39,6.71-8.37,10.81-13.34,9.17-4.98-1.65-7.07-8.42-4.67-15.13,2.39-6.71,8.37-10.81,13.34-9.17,4.98,1.65,7.07,8.42,4.67,15.13Z"/><path class="cls-1" d="M252.79,440.33c-2.39,6.71-8.37,10.81-13.34,9.17-4.98-1.65-7.07-8.42-4.67-15.13,2.39-6.71,8.37-10.81,13.34-9.17,4.98,1.65,7.07,8.42,4.67,15.13Z"/><path class="cls-1" d="M230.49,453.76c-2.39,6.71-8.37,10.81-13.34,9.17-4.98-1.65-7.07-8.42-4.67-15.13,2.39-6.71,8.37-10.81,13.34-9.17,4.98,1.65,7.07,8.42,4.67,15.13Z"/><path class="cls-1" d="M331.66,424.26c-2.39,6.71-8.37,10.81-13.34,9.17-4.98-1.65-7.07-8.42-4.67-15.13,2.39-6.71,8.37-10.81,13.34-9.17,4.98,1.65,7.07,8.42,4.67,15.13Z"/><path class="cls-1" d="M349.19,438.3c-2.39,6.71-8.37,10.81-13.34,9.17-4.98-1.65-7.07-8.42-4.67-15.13,2.39-6.71,8.37-10.81,13.34-9.17,4.98,1.65,7.07,8.42,4.67,15.13Z"/><path class="cls-1" d="M326.89,451.73c-2.39,6.71-8.37,10.81-13.34,9.17-4.98-1.65-7.07-8.42-4.67-15.13,2.39-6.71,8.37-10.81,13.34-9.17,4.98,1.65,7.07,8.42,4.67,15.13Z"/><path class="cls-1" d="M425.67,423.31c-2.39,6.71-8.37,10.81-13.34,9.17-4.98-1.65-7.07-8.42-4.67-15.13,2.39-6.71,8.37-10.81,13.34-9.17,4.98,1.65,7.07,8.42,4.67,15.13Z"/><path class="cls-1" d="M443.21,437.35c-2.39,6.71-8.37,10.81-13.34,9.17-4.98-1.65-7.07-8.42-4.67-15.13,2.39-6.71,8.37-10.81,13.34-9.17,4.98,1.65,7.07,8.42,4.67,15.13Z"/><path class="cls-1" d="M420.91,450.78c-2.39,6.71-8.37,10.81-13.34,9.17-4.98-1.65-7.07-8.42-4.67-15.13,2.39-6.71,8.37-10.81,13.34-9.17,4.98,1.65,7.07,8.42,4.67,15.13Z"/><path class="cls-1" d="M502.59,424.26c-2.39,6.71-8.37,10.81-13.34,9.17-4.98-1.65-7.07-8.42-4.67-15.13,2.39-6.71,8.37-10.81,13.34-9.17,4.98,1.65,7.07,8.42,4.67,15.13Z"/><path class="cls-1" d="M520.13,438.3c-2.39,6.71-8.37,10.81-13.34,9.17-4.98-1.65-7.07-8.42-4.67-15.13,2.39-6.71,8.37-10.81,13.34-9.17,4.98,1.65,7.07,8.42,4.67,15.13Z"/><path class="cls-1" d="M497.83,451.73c-2.39,6.71-8.37,10.81-13.34,9.17-4.98-1.65-7.07-8.42-4.67-15.13,2.39-6.71,8.37-10.81,13.34-9.17,4.98,1.65,7.07,8.42,4.67,15.13Z"/><path class="cls-1" d="M370.56,343.17c0,7.24-5.87,13.11-13.11,13.11s-13.11-5.87-13.11-13.11,13.11-25.12,13.11-25.12c0,0,13.11,17.88,13.11,25.12h0Z"/><path class="cls-1" d="M370.56,289.58c0,7.24-5.87,13.11-13.11,13.11s-13.11-5.87-13.11-13.11,13.11-25.12,13.11-25.12c0,0,13.11,17.88,13.11,25.12h0Z"/><path class="cls-1" d="M370.56,231.43c0,7.24-5.87,13.11-13.11,13.11s-13.11-5.87-13.11-13.11,13.11-25.12,13.11-25.12c0,0,13.11,17.88,13.11,25.12h0Z"/></svg>
+                                <svg id="bean-step-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"><defs><style>.cls-1,.cls-2{fill:none;stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><path d="M274.87,329.79c5.66-5.45,7.97-13.95,6.53-21.66,0-.05-.04-.09-.07-.11-6.03-3.28-13.5-2.37-19.15,3.08-5.63,5.42-3.14,11.09-13.74,28.5-.08.12.03.28.15.22,16.52-8.7,20.65-4.62,26.28-10.04Z"/><path d="M227.77,312.77c-7.6-2.93-14.8-6.07-20.31-3.16.11,7.03,5.64,13.25,11.19,19.97,5.65,6.85,20.93,9.86,29.77,10.1-3.99-9.17-12.9-23.94-20.64-26.92Z"/><path class="cls-1" d="M239.79,388.77c-.15-3.53-.16-10.64,1.97-18.88,1.56-6.01,3.84-7.64,5.44-13.45,1.84-6.65,1.62-13.07,1.19-17.26"/><path d="M375.88,330.19c5.66-5.45,7.97-13.95,6.53-21.66,0-.05-.04-.09-.07-.11-6.03-3.28-13.5-2.37-19.15,3.08-5.63,5.42-3.14,11.09-13.74,28.5-.08.12.03.28.15.22,16.52-8.7,20.65-4.62,26.28-10.04Z"/><path d="M328.77,313.18c-7.6-2.93-14.8-6.07-20.31-3.16.11,7.03,5.64,13.25,11.19,19.97,5.65,6.85,20.93,9.86,29.77,10.1-3.99-9.17-12.9-23.94-20.64-26.92Z"/><path class="cls-1" d="M340.79,389.18c-.15-3.53-.16-10.64,1.97-18.88,1.56-6.01,3.84-7.64,5.44-13.45,1.84-6.65,1.62-13.07,1.19-17.26"/><path d="M478.85,329.43c5.66-5.45,7.97-13.95,6.53-21.66,0-.05-.04-.09-.07-.11-6.03-3.28-13.5-2.37-19.15,3.08-5.63,5.42-3.14,11.09-13.74,28.5-.08.12.03.28.15.22,16.52-8.7,20.65-4.62,26.28-10.04Z"/><path d="M431.74,312.42c-7.6-2.93-14.8-6.07-20.31-3.16.11,7.03,5.64,13.25,11.19,19.97,5.65,6.85,20.93,9.86,29.77,10.1-3.99-9.17-12.9-23.94-20.64-26.92Z"/><path class="cls-1" d="M443.76,388.42c-.15-3.53-.16-10.64,1.97-18.88,1.56-6.01,3.84-7.64,5.44-13.45,1.84-6.65,1.62-13.07,1.19-17.26"/><rect class="cls-2" x="181.73" y="261.59" width="351.79" height="395.76"/><rect class="cls-2" x="170.74" y="213.67" width="373.77" height="47.91"/><path class="cls-2" d="M181.74,212.68c0-97.14,78.75-175.89,175.89-175.89s175.89,78.75,175.89,175.89"/><polygon class="cls-2" points="533.59 656.14 182.13 656.14 182.13 385.96 217.46 394.43 248.03 385.96 297.69 393.49 356.9 385.96 402.75 394.43 452.41 385.96 503.98 395.37 533.59 385.96 533.59 656.14"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="step-title">PLANT BEANS</div>
+                    <div class="plant-potatoes-description" id="bean-description">Prepare dry beans.</div>
+                </div>
+            </div>
+
+            <!-- Step Navigation Panel -->
+            <div class="step-navigation" id="step-navigation">
+                <div class="step-nav-item" onclick="backToGrid()">
+                    <div class="step-nav-close"></div>
+                </div>
+                <div class="step-nav-item active" data-step="introduction" onclick="scrollToStep('introduction')">
+                    <div class="legend-dot"></div>
+                    <div class="legend-text">INTRODUCTION</div>
+                </div>
+                <div class="step-nav-item" data-step="materials-requirement" onclick="scrollToStep('materials-requirement')">
+                    <div class="legend-dot"></div>
+                    <div class="legend-text">MATERIALS</div>
+                </div>
+                <div class="step-nav-item" data-step="plant-potatoes" onclick="scrollToStep('plant-potatoes')">
+                    <div class="legend-dot"></div>
+                    <div class="legend-text">PLANT POTATOES</div>
+                </div>
+                <div class="step-nav-item" data-step="plant-beans" onclick="scrollToStep('plant-beans')">
+                    <div class="legend-dot"></div>
+                    <div class="legend-text">PLANT BEANS</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Scroll to step function
+        function scrollToStep(stepId) {
+            const stepElement = document.getElementById(stepId);
+            if (stepElement) {
+                stepElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // Update active state
+                document.querySelectorAll('.step-nav-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.getAttribute('data-step') === stepId) {
+                        item.classList.add('active');
+                    }
+                });
+            }
+        }
+
+        // Back to grid function (goes back to seedarchive.html)
+        function backToGrid() {
+            window.location.href = 'seedarchive.html';
+        }
+
+        // Plant potatoes step function
+        function showPlantPotatoesStep(stepNumber, element) {
+            // Hide all SVGs
+            document.querySelectorAll('#plant-step-1, #plant-step-2, #plant-step-3, #plant-step-4, #plant-step-5, #plant-step-6').forEach(svg => {
+                svg.classList.remove('active');
+            });
+            
+            // Show selected SVG
+            const selectedSvg = document.getElementById('plant-step-' + stepNumber);
+            if (selectedSvg) {
+                selectedSvg.classList.add('active');
+            }
+            
+            // Update active step
+            document.querySelectorAll('.plant-potatoes-step').forEach(step => {
+                step.classList.remove('active');
+            });
+            if (element) {
+                element.classList.add('active');
+            } else {
+                // If no element provided, find and update the corresponding step button
+                const stepButtons = document.querySelectorAll('.plant-potatoes-step');
+                if (stepButtons[stepNumber - 1]) {
+                    stepButtons[stepNumber - 1].classList.add('active');
+                }
+            }
+            
+            // Update description
+            const descriptions = [
+                'Prepare a potato.',
+                'Cut off a small part of it.',
+                'Cut off a small part of it.',
+                'Place a 10-centimeter drainage layer (gravel, broken tiles) at the bottom of the container, add 15 centimeters of soil, position the seed potatoes (with the eyes facing up), and cover with 10 centimeters of soil.',
+                'As the plants grow, keep adding soil. This can increase the yield. Openings can be made on the sides of the containers for easy harvesting.',
+                'Keep the soil moist but not waterlogged, and water thoroughly each time. Stop watering when the leaves start to turn yellow. Harvest after two weeks. One seed potato can produce 5 to 10 times its weight in new potatoes.'
+            ];
+            const descriptionEl = document.getElementById('plant-description');
+            if (descriptionEl) {
+                descriptionEl.textContent = descriptions[stepNumber - 1];
+            }
+        }
+
+        // Get current step number
+        function getCurrentStep() {
+            const activeSvg = document.querySelector('.plant-potatoes-image svg.active');
+            if (activeSvg) {
+                const id = activeSvg.id;
+                const match = id.match(/plant-step-(\d+)/);
+                if (match) {
+                    return parseInt(match[1]);
+                }
+            }
+            return 1; // Default to step 1
+        }
+
+        // Go to next step when clicking on image
+        function nextPlantPotatoesStep() {
+            const currentStep = getCurrentStep();
+            const nextStep = currentStep < 6 ? currentStep + 1 : 1; // Loop back to step 1 after step 6
+            const stepButtons = document.querySelectorAll('.plant-potatoes-step');
+            const nextElement = stepButtons[nextStep - 1];
+            showPlantPotatoesStep(nextStep, nextElement);
+        }
+
+        // Plant beans step function
+        function showPlantBeansStep(stepNumber, element) {
+            // Hide all SVGs
+            document.querySelectorAll('#bean-step-1, #bean-step-2, #bean-step-3, #bean-step-4').forEach(svg => {
+                svg.classList.remove('active');
+            });
+            
+            // Show selected SVG
+            const selectedSvg = document.getElementById('bean-step-' + stepNumber);
+            if (selectedSvg) {
+                selectedSvg.classList.add('active');
+            }
+            
+            // Update active step
+            const stepButtons = document.querySelectorAll('#plant-beans .plant-potatoes-step');
+            stepButtons.forEach(step => {
+                step.classList.remove('active');
+            });
+            if (element) {
+                element.classList.add('active');
+            } else {
+                if (stepButtons[stepNumber - 1]) {
+                    stepButtons[stepNumber - 1].classList.add('active');
+                }
+            }
+            
+            // Update description
+            const descriptions = [
+                'Prepare dry beans.',
+                'Select plump and pest-free beans, and soak them in water for 8 to 12 hours before sowing to promote germination.',
+                'Dig 2-3 centimeter deep holes directly in the soil, place 2-3 beans in each hole, with 20-30 centimeters spacing between holes. Cover with soil and gently compact.',
+                'Keep the soil moist during the initial stage to promote germination, and increase watering during the flowering period. Harvest when the pods become dry and brittle. The root nodules can be left in the soil to improve soil quality.'
+            ];
+            const descriptionEl = document.getElementById('bean-description');
+            if (descriptionEl) {
+                descriptionEl.textContent = descriptions[stepNumber - 1];
+            }
+        }
+
+        // Get current bean step number
+        function getCurrentBeanStep() {
+            const activeSvg = document.querySelector('#plant-beans-image svg.active');
+            if (activeSvg) {
+                const id = activeSvg.id;
+                const match = id.match(/bean-step-(\d+)/);
+                if (match) {
+                    return parseInt(match[1]);
+                }
+            }
+            return 1; // Default to step 1
+        }
+
+        // Go to next bean step when clicking on image
+        function nextPlantBeansStep() {
+            const currentStep = getCurrentBeanStep();
+            const nextStep = currentStep < 4 ? currentStep + 1 : 1; // Loop back to step 1 after step 4
+            const stepButtons = document.querySelectorAll('#plant-beans .plant-potatoes-step');
+            const nextElement = stepButtons[nextStep - 1];
+            showPlantBeansStep(nextStep, nextElement);
+        }
+
+        // Function to update active nav item based on scroll position
+        function updateActiveNavItem() {
+            const sections = ['introduction', 'materials-requirement', 'plant-potatoes', 'plant-beans'];
+            const scrollPosition = window.scrollY + window.innerHeight / 2; // Use middle of viewport
+            
+            let activeSection = null;
+            
+            sections.forEach(sectionId => {
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    const sectionTop = section.offsetTop;
+                    const sectionBottom = sectionTop + section.offsetHeight;
+                    
+                    if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
+                        activeSection = sectionId;
+                    }
+                }
+            });
+            
+            // Update navigation items
+            document.querySelectorAll('.step-nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-step') === activeSection) {
+                    item.classList.add('active');
+                }
+            });
+        }
+
+        // Add click event to image container
+        document.addEventListener('DOMContentLoaded', function() {
+            const potatoesImageContainer = document.querySelector('.plant-potatoes-image');
+            if (potatoesImageContainer && !potatoesImageContainer.id) {
+                potatoesImageContainer.addEventListener('click', nextPlantPotatoesStep);
+            }
+            
+            const beansImageContainer = document.getElementById('plant-beans-image');
+            if (beansImageContainer) {
+                beansImageContainer.addEventListener('click', nextPlantBeansStep);
+            }
+            
+            // Add scroll listener to update active nav item
+            window.addEventListener('scroll', updateActiveNavItem);
+            // Initial check
+            updateActiveNavItem();
+        });
+    </script>
+</body>
+</html>
+

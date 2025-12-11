@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Navigation - SEED ARCHIVE</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: white;
+            padding: 20px 5px;
+            min-height: 100vh;
+            overflow-y: auto;
+            padding-top: 60px;
+        }
+        
+        a, button, [onclick], [role="button"], .clickable, *[cursor="pointer"], *[style*="cursor: pointer"] {
+            cursor: pointer !important;
+        }
+
+        /* Top scrolling text bar (same as seedarchive) */
+        .top-tab {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: white;
+            border-bottom: 1px solid black;
+            z-index: 1000;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+
+        .scrolling-text-container {
+            display: flex;
+            white-space: nowrap;
+            animation: scrollText 30s linear infinite;
+            position: absolute;
+            left: 0;
+            will-change: transform;
+        }
+
+        .scrolling-text {
+            font-size: 16px;
+            color: black;
+            padding-right: 50px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .scrolling-text svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        @keyframes scrollText {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Main layout: Map on left, Filter panel on right */
+        .main-layout {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+            align-items: flex-start;
+        }
+
+        /* Map container - takes up most of the space (right panel is now fixed) */
+        .map-container {
+            flex: 1;
+            min-height: calc(100vh - 100px);
+            height: calc(100vh - 100px);
+            border: 1px solid black;
+            background: white;
+            position: relative;
+            max-width: 100%;
+            box-sizing: border-box;
+            min-width: 0;
+        }
+
+        /* Map wrapper to ensure border visibility */
+        .map-wrapper {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Leaflet map container */
+        #map {
+            width: 100%;
+            height: 100%;
+            min-height: calc(100vh - 100px);
+            filter: grayscale(100%) contrast(1.2) brightness(0.9);
+            box-sizing: border-box;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* Ensure Leaflet controls don't cover border */
+        .leaflet-container {
+            background: white;
+            border: none !important;
+        }
+
+        /* Ensure map tiles don't cover border and respect container bounds */
+        .leaflet-tile-container {
+            border: none !important;
+        }
+
+        /* Ensure map panes respect container bounds */
+        .leaflet-pane {
+            overflow: visible;
+        }
+
+        /* Custom zoom control styles - override Leaflet defaults */
+        .leaflet-bar,
+        .leaflet-control-zoom,
+        .leaflet-control-zoom-in,
+        .leaflet-control-zoom-out {
+            background: transparent !important;
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .leaflet-bar a,
+        .leaflet-control-zoom a,
+        .leaflet-control-zoom-in,
+        .leaflet-control-zoom-out {
+            width: 30px !important;
+            height: 30px !important;
+            line-height: 30px !important;
+            border: 1px solid black !important;
+            border-radius: 0 !important;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            color: black !important;
+            margin-bottom: 5px !important;
+            font-size: 20px !important;
+            font-weight: normal !important;
+            text-align: center !important;
+            display: block !important;
+            text-decoration: none !important;
+            box-sizing: border-box !important;
+        }
+
+        .leaflet-bar a:hover,
+        .leaflet-control-zoom a:hover,
+        .leaflet-control-zoom-in:hover,
+        .leaflet-control-zoom-out:hover {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+        }
+
+        .leaflet-bar a:active,
+        .leaflet-control-zoom a:active,
+        .leaflet-control-zoom-in:active,
+        .leaflet-control-zoom-out:active {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+        }
+
+        .leaflet-bar a:focus,
+        .leaflet-control-zoom a:focus,
+        .leaflet-control-zoom-in:focus,
+        .leaflet-control-zoom-out:focus {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+        }
+
+        /* Custom marker icon styles */
+        .custom-marker-icon {
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .custom-marker-icon svg {
+            display: block;
+        }
+
+        /* Right side panel container */
+        .right-panel {
+            width: 200px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Filter panel - same style as seedarchive - fixed position */
+        .legend-panel {
+            position: fixed;
+            top: 80px;
+            right: 50px;
+            width: 200px;
+            padding: 20px;
+            background: white;
+            border: 1px solid black;
+            box-sizing: border-box;
+            height: fit-content;
+            z-index: 100;
+        }
+
+        .home-logo {
+            width: 38px;
+            height: 38px;
+            cursor: pointer;
+            margin-bottom: 12px;
+            display: block;
+            padding: 5px;
+            transition: transform 0.3s ease;
+        }
+
+        .home-logo:hover {
+            transform: rotate(-45deg);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .legend-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+
+        .legend-dot.filled {
+            background: black;
+        }
+
+        .legend-dot.outline {
+            border: 1px solid black;
+            background: white;
+        }
+
+        .legend-text {
+            font-size: 12px;
+            color: black;
+            white-space: nowrap;
+        }
+
+        .legend-item.active .legend-text {
+            font-weight: bold;
+        }
+
+        .legend-item.active .legend-dot {
+            border: 1px solid black;
+            background: white !important;
+            box-sizing: border-box;
+        }
+
+        /* Coordinate filter options */
+        .coordinate-filters {
+            margin-top: 12px;
+            padding-top: 0;
+        }
+
+        .coordinate-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .coordinate-item.active .legend-text {
+            font-weight: bold;
+        }
+
+        .coordinate-item.active .legend-dot {
+            border: 1px solid black;
+            background: white !important;
+            box-sizing: border-box;
+        }
+
+        /* Location info panel - fixed position below legend-panel */
+        .location-info {
+            position: fixed;
+            right: 50px;
+            width: 200px;
+            margin-top: 0;
+            padding: 15px;
+            border: 1px solid black;
+            background: white;
+            display: none;
+            box-sizing: border-box;
+            text-align: left;
+            z-index: 100;
+            max-height: calc(100vh - 400px);
+            overflow-y: auto;
+        }
+
+        .location-info.visible {
+            display: block;
+        }
+
+        .location-info-title {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        .location-info-description {
+            font-size: 10px;
+            line-height: 1.6;
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        .location-info-coordinates {
+            font-size: 12px;
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        .location-info-satellite {
+            margin-top: 12px;
+            padding: 10px;
+            border: 1px solid black;
+            font-size: 12px;
+            display: none;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .location-info-satellite:hover {
+            background-color: #f0f0f0;
+        }
+
+        .location-info-satellite.visible {
+            display: block;
+        }
+
+        .navigation-status {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .navigation-eta {
+            font-size: 11px;
+            margin-top: 8px;
+        }
+
+        /* Location detail section below map */
+        .location-detail {
+            margin-top: 30px;
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+        
+        .location-detail-content {
+            flex: 1;
+            max-width: calc(100% - 230px);
+            min-width: 0;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        .location-image-container {
+            width: 100%;
+            border: 1px solid black;
+            background: white;
+            padding: 0;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .location-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+
+        .location-detail-description {
+            width: 100%;
+            border: none;
+            background: transparent;
+            padding: 0;
+            box-sizing: border-box;
+            font-size: 16px;
+            font-weight: 400;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.6;
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        .location-detail-description h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        .location-detail-description h2:first-child {
+            margin-top: 0;
+        }
+
+        .location-detail-description h3 {
+            font-size: 18px;
+            font-weight: 500;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .location-detail-description p {
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .location-detail-description .coordinates {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .location-detail-description ul {
+            margin-top: 10px;
+            margin-bottom: 15px;
+            padding-left: 20px;
+        }
+
+        .location-detail-description li {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top scrolling text bar -->
+    <div class="top-tab">
+        <div class="scrolling-text-container">
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-layout">
+            <!-- Map on the left -->
+            <div class="map-container">
+                <div class="map-wrapper">
+                    <div id="map"></div>
+                </div>
+            </div>
+
+            <!-- Right panel container -->
+            <div class="right-panel">
+                <!-- Filter panel on the right (same position as seedarchive) - now fixed -->
+                <div class="legend-panel">
+                    <svg class="home-logo" width="30" height="30" viewBox="0 0 73 73" fill="none" xmlns="http://www.w3.org/2000/svg" onclick="window.location.href='Index.html'">
+                        <g clip-path="url(#clip0_97_303)">
+                            <path d="M44.2231 37.5504C44.2231 37.8504 44.2088 38.1648 44.166 38.4648L64.8271 46.7665C65.713 45.7234 67.2133 45.309 68.5422 45.852C70.2282 46.5236 71.0426 48.4382 70.3568 50.1243C69.6852 51.8103 67.7706 52.6248 66.0845 51.9532C64.7414 51.4102 63.9555 50.0814 64.0413 48.7097L43.6516 40.5224C43.4944 40.9225 43.3086 41.3083 43.1086 41.6655L58.5116 57.0685C59.7404 56.4541 61.2836 56.6541 62.2981 57.6829C63.584 58.9689 63.584 61.055 62.2981 62.3267C61.0121 63.6126 58.9403 63.6126 57.6543 62.3267C56.6255 61.2979 56.4255 59.769 57.0399 58.5402L41.8226 43.3229C41.5226 43.623 41.2082 43.8945 40.8653 44.1374L49.2527 63.8127C50.6244 63.6983 51.9675 64.4556 52.539 65.7845C53.2534 67.4562 52.4676 69.3852 50.8101 70.0996C49.1384 70.814 47.2094 70.0282 46.495 68.3707C45.9234 67.0276 46.3092 65.5416 47.338 64.6271L39.0364 45.1519C38.5506 45.3376 38.0505 45.4805 37.5361 45.5805V66.6418C38.8363 67.0704 39.7794 68.2993 39.7794 69.7424C39.7794 71.557 38.3077 73.0287 36.493 73.0287C34.6784 73.0287 33.2067 71.557 33.2067 69.7424C33.2067 68.2993 34.1497 67.0704 35.45 66.6418V45.6948C34.9641 45.6662 34.4783 45.5805 34.0211 45.4662L26.2196 64.8557C27.2769 65.7416 27.677 67.2419 27.134 68.5707C26.4625 70.2568 24.5478 71.0712 22.8618 70.3997C21.1757 69.7138 20.3613 67.7992 21.0329 66.1131C21.5758 64.77 22.9046 63.9841 24.2763 64.0699L32.0779 44.6661C31.6064 44.3946 31.1634 44.0802 30.749 43.723L15.9319 58.5402C16.5463 59.769 16.3462 61.3122 15.3175 62.3267C14.0315 63.6126 11.9454 63.6126 10.6737 62.3267C9.38772 61.055 9.38772 58.9689 10.6737 57.6829C11.7025 56.6541 13.2313 56.4541 14.4601 57.0685L29.3488 42.1656C29.0916 41.7941 28.863 41.394 28.6629 40.9796L9.18768 49.2812C9.30199 50.6529 8.5447 51.9961 7.21587 52.5676C5.54411 53.282 3.61516 52.4962 2.90074 50.8387C2.18631 49.1669 2.97218 47.238 4.62965 46.5236C5.97277 45.952 7.45877 46.3378 8.37324 47.3666L28.0485 38.9792C27.9628 38.522 27.9199 38.0362 27.9199 37.5647H6.40142C5.97277 38.8649 4.74395 39.808 3.30081 39.808C1.22898 39.808 -0.385621 37.9219 0.100188 35.7786C0.357381 34.6212 1.27185 33.6639 2.41493 33.3638C4.21528 32.8923 5.88703 33.9211 6.40142 35.4928H28.22C28.32 35.1499 28.4343 34.7927 28.5629 34.4641L8.18748 26.2767C7.3016 27.3341 5.8013 27.7342 4.47247 27.1912C2.78643 26.5196 1.97198 24.605 2.64354 22.9189C3.32939 21.2329 5.22976 20.4185 6.9301 21.09C8.27322 21.633 9.05908 22.9761 8.97335 24.3335L29.6345 32.6351C29.8489 32.3494 30.0918 32.0779 30.349 31.835L14.503 15.989C13.2742 16.6034 11.731 16.4034 10.7166 15.3746C9.43058 14.0886 9.43058 12.0025 10.7166 10.7308C11.9882 9.44487 14.0744 9.44487 15.3603 10.7308C16.3891 11.7596 16.5891 13.2885 15.9747 14.5173L32.0064 30.549C32.2208 30.4204 32.4494 30.2918 32.6923 30.1918L23.762 9.24483C22.3903 9.35914 21.0471 8.60185 20.4756 7.27302C19.7612 5.60126 20.547 3.67232 22.2045 2.95789C23.8763 2.24346 25.8052 3.02933 26.5196 4.6868C27.0912 6.02992 26.7054 7.51592 25.6766 8.44468L34.6784 29.5774C34.9356 29.5202 35.2071 29.4917 35.4785 29.4774V6.40142C34.1783 5.97277 33.2352 4.74395 33.2352 3.30081C33.2352 1.22898 35.1213 -0.385621 37.2646 0.100188C38.422 0.357381 39.3793 1.27185 39.6794 2.41493C40.1509 4.21528 39.1221 5.88703 37.5504 6.40142V29.5345C37.879 29.5917 37.8076 29.5917 38.1505 29.6488L46.7808 8.18748C45.7234 7.3016 45.3233 5.8013 45.8663 4.47247C46.5378 2.78643 48.4525 1.97198 50.1385 2.65783C51.8246 3.32939 52.639 5.24405 51.9532 6.9301C51.4102 8.27322 50.0814 9.05908 48.7097 8.97335L40.0652 30.4633C40.2795 30.5919 40.4938 30.7205 40.6938 30.8634L57.0542 14.503C56.4398 13.2742 56.6398 11.731 57.6686 10.7166C58.9546 9.43059 61.0264 9.43059 62.3124 10.7166C63.5983 11.9882 63.5983 14.0744 62.3124 15.3603C61.2836 16.3891 59.7547 16.5891 58.5259 15.9747L42.2513 32.2493C42.3942 32.4208 42.5371 32.5923 42.6657 32.7637L63.7984 23.762C63.6841 22.3903 64.4413 21.0471 65.7702 20.4756C67.4419 19.7612 69.3709 20.547 70.0853 22.2045C70.7997 23.8763 70.0139 25.8052 68.3421 26.5196C67.0133 27.0912 65.513 26.7054 64.5985 25.6766L43.6659 34.6069C43.7802 34.8927 43.8802 35.1785 43.9516 35.4785H66.6132C67.0419 34.1783 68.2707 33.2352 69.7138 33.2352C71.5285 33.2352 73.0002 34.707 73.0002 36.5216C73.0002 38.3362 71.5285 39.808 69.7138 39.808C68.2707 39.808 67.0419 38.8649 66.6132 37.5647H44.2231V37.5504Z" fill="black"/>
+                        </g>
+                        <defs>
+                            <clipPath id="clip0_97_303">
+                                <rect width="73" height="73" fill="white"/>
+                            </clipPath>
+                        </defs>
+                    </svg>
+
+                    <!-- ALL option -->
+                    <div class="legend-item active" data-filter="all" onclick="filterCoordinates('all')">
+                        <div class="legend-dot filled"></div>
+                        <div class="legend-text">ALL</div>
+                    </div>
+
+                    <!-- Coordinate filter options -->
+                    <div class="coordinate-filters">
+                        <div class="coordinate-item" data-region="svalbard" onclick="filterCoordinates('svalbard')">
+                            <div class="legend-dot filled"></div>
+                            <div class="legend-text">SGSV</div>
+                        </div>
+                        <div class="coordinate-item" data-region="internet-archive" onclick="filterCoordinates('internet-archive')">
+                            <div class="legend-dot filled"></div>
+                            <div class="legend-text">IA</div>
+                        </div>
+                        <div class="coordinate-item" data-region="cdc" onclick="filterCoordinates('cdc')">
+                            <div class="legend-dot filled"></div>
+                            <div class="legend-text">CDC</div>
+                        </div>
+                        <div class="coordinate-item" data-region="cern" onclick="filterCoordinates('cern')">
+                            <div class="legend-dot filled"></div>
+                            <div class="legend-text">CERN</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location info panel - outside filter panel -->
+                <div class="location-info" id="location-info">
+                    <div class="location-info-title" id="location-title"></div>
+                    <div class="location-info-coordinates" id="location-coordinates"></div>
+                    <div class="location-info-description" id="location-description"></div>
+                    <div class="location-info-satellite" id="location-satellite">
+                        <div id="satellite-text">satellite navigation</div>
+                        <div class="navigation-status" id="navigation-status" style="display: none;">Navigating</div>
+                        <div class="navigation-eta" id="navigation-eta" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Location detail section below map -->
+        <div class="location-detail" id="location-detail" style="display: none;">
+            <div class="location-detail-content">
+                <div class="location-image-container">
+                    <img id="location-image" src="" alt="" class="location-image">
+                </div>
+                <div class="location-detail-description" id="location-detail-description"></div>
+            </div>
+            <div class="location-detail-spacer" style="width: 200px; flex-shrink: 0;"></div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <script>
+        // Coordinate data for the four locations
+        const coordinateData = [
+            { 
+                id: 1, 
+                name: 'SGSV', 
+                fullName: 'Svalbard Global Seed Vault',
+                description: 'The "Doomsday Seed Vault", which preserves global crop seeds, stores over one million seed samples from all over the world.',
+                detailedDescription: `<h2>SVALBARD GLOBAL SEED VAULT</h2>
+<p class="coordinates">Coordinates: 78.2380° N, 15.4472° E</p>
+
+<h3>Environmental Overview</h3>
+<p>Located 1,300 kilometers inside the Arctic Circle, a land of perpetual night and day. The seed vault is built into the permafrost, with an entrance that is a concrete wedge-shaped structure protruding from the mountainside, strikingly visible in the polar desolation. The art installation at the entrance emits an eerie blue glow under the aurora, like the last beacon of civilization.</p>
+
+<h3>Climate Conditions</h3>
+<ul>
+<li>Polar Night Period (October-February): Complete darkness, temperatures -15°C to -30°C</li>
+<li>Polar Day Period (April-August): 24-hour daylight, temperatures -5°C to 5°C</li>
+<li>Constant Threats: Blizzards, polar bears, ice crevasses</li>
+<li>Best Time to Arrive: June-August, relatively warm with daylight</li>
+</ul>
+
+<h3>Essential Equipment</h3>
+<ul>
+<li>Polar Clothing: Multi-layer insulation system, windproof shell, polar sleeping bag (-40°C rated)</li>
+<li>Survival Tools: Ice axe, avalanche beacon, GPS (compass fails near magnetic north pole)</li>
+<li>Bear Protection: Flare gun, noise deterrents, bear-proof fencing</li>
+<li>Lighting Equipment: Headlamp + backup batteries (essential during polar night)</li>
+<li>Food & Fuel: High-calorie rations, portable stove, fuel (no local supplies available)</li>
+</ul>
+
+<h3>Access Method</h3>
+<p>The seed vault has three security doors:</p>
+<ul>
+<li>Outer Door: Reinforced concrete, may require explosives or finding manual override mechanism</li>
+<li>Airlock Chamber: Double steel doors, designed to prevent temperature fluctuations</li>
+<li>Inner Tunnel: 120 meters long, leading to three independent storage chambers</li>
+</ul>
+<p>Storage chambers maintain constant -18°C temperature. Even if systems fail, permafrost can maintain low temperatures for 200 years. Each seed sample is sealed in aluminum foil packets, placed within sealed containers.</p>
+
+<h3>Key Resources</h3>
+<ul>
+<li>1,000,000+ seed samples (prioritizing staple crops: wheat, rice, corn, etc.)</li>
+<li>Planting instruction documents (waterproof sealed)</li>
+<li>Backup generators and fuel reserves</li>
+</ul>`,
+                region: 'svalbard', 
+                lat: 78.2380, 
+                lng: 15.4472,
+                imageUrl: 'asset/Svalbard Global Seed Vault.png'
+            },
+            { 
+                id: 2, 
+                name: 'IA', 
+                fullName: 'Internet Archive',
+                description: 'The Library of Alexandria in the digital age preserves 735 billion web pages, 41 million books, 14.5 million audio files and 8.5 million videos.',
+                detailedDescription: `<h2>INTERNET ARCHIVE</h2>
+<p class="coordinates">Coordinates: 37.7826° N, 122.4716° W</p>
+
+<h3>Environmental Overview</h3>
+<p>Located in the former Christian Science church in Richmond District, San Francisco, the white domed building remains strikingly visible among the ruins. The interior has been converted into server rooms, housing thousands of storage servers. Adjacent to the building is the Archive's physical book repository, storing millions of original books before digitization.</p>
+
+<h3>Climate Conditions</h3>
+<ul>
+<li>Mediterranean Climate: Mild and rainy winters (10-15°C), dry summers (15-25°C)</li>
+<li>Earthquake Risk: Located near the San Andreas Fault</li>
+<li>Sea Fog: Frequent in summer, low visibility</li>
+<li>Relatively Habitable: Small seasonal temperature variations, but beware of aftershocks</li>
+</ul>
+
+<h3>Essential Equipment</h3>
+<ul>
+<li>Technical Equipment: Portable generator, solar panels, hard drive arrays</li>
+<li>Electronic Tools: Multimeter, soldering equipment, network cables</li>
+<li>Protective Gear: Dust masks (server dust), anti-static wristbands</li>
+<li>Knowledge Carriers: Blank hard drives, USB drives, waterproof notebooks</li>
+<li>Basic Tools: Crowbar, flashlight, backup batteries</li>
+</ul>
+
+<h3>Access Method</h3>
+<p>Main Entrance: Glass doors may be broken, watch for debris</p>
+<ul>
+<li>Server Area: Requires partial power restoration to access data</li>
+<li>Underground Backup: Earthquake-resistant basement contains tape backups</li>
+<li>Book Repository: Separate building, physical books do not require electricity</li>
+</ul>
+
+<h3>Key Resources</h3>
+<ul>
+<li>Wayback Machine Servers: Historical snapshots of web pages</li>
+<li>Book Scanning Archives: Digital versions of 41 million books</li>
+<li>Technical Documentation: Professional materials on programming, engineering, medicine, etc.</li>
+<li>Civilization Reconstruction Guide: Specially prepared offline Wikipedia copies</li>
+</ul>`,
+                region: 'internet-archive', 
+                lat: 37.7826, 
+                lng: -122.4716,
+                imageUrl: 'asset/Internet Archive.png'
+            },
+            { 
+                id: 3, 
+                name: 'CDC', 
+                fullName: 'Centers for Disease Control and Prevention',
+                description: 'The Global Pandemic Monitoring and Response Center houses samples of lethal pathogens, including the smallpox virus, for vaccine research and development.',
+                detailedDescription: `<h2>CENTERS FOR DISEASE CONTROL AND PREVENTION</h2>
+<p class="coordinates">Coordinates: 33.7990° N, 84.3280° W</p>
+
+<h3>Environmental Overview</h3>
+<p>A massive 15-acre campus, the main building is an iconic glass-curtained tower. Underground are BSL-4 laboratories (highest biosafety level), storing the most dangerous pathogens known to humanity. The campus includes an independent emergency command center and vaccine production facilities.</p>
+
+<h3>Climate Conditions</h3>
+<ul>
+<li>Subtropical Humid: Hot and humid summers (25-35°C), mild winters (5-15°C)</li>
+<li>Frequent Thunderstorms: Spring and summer seasons, beware of lightning</li>
+<li>Hurricane Impact: May be affected by hurricane peripherals in August-October</li>
+<li>Lush Vegetation: May be covered by kudzu vines post-apocalypse</li>
+</ul>
+
+<h3>Essential Equipment</h3>
+<ul>
+<li>Biological Protection: Full PPE, N95 masks, goggles, protective suits</li>
+<li>Medical Supplies: Broad-spectrum antibiotics, antiviral drugs, immunoglobulins</li>
+<li>Detection Equipment: Portable microscope, rapid test kits</li>
+<li>Disinfection Supplies: Bleach, alcohol, UV lamps</li>
+<li>Cooling Equipment: Portable refrigerator (vaccine storage), dry ice</li>
+</ul>
+
+<h3>Access Method</h3>
+<p>Peripheral Security: Original fences and checkpoints may be abandoned</p>
+<ul>
+<li>Main Building Access: Electronic locks may have failed, physical breach required</li>
+<li>BSL-4 Laboratory: Requires positive pressure protective suits, access through multiple airlock doors, backup generators may still be running</li>
+<li>Vaccine Storage: -70°C ultra-low temperature freezers, prioritize power restoration</li>
+</ul>
+
+<h3>Key Resources</h3>
+<ul>
+<li>Virus Sample Library: For vaccine development (extremely dangerous)</li>
+<li>Vaccine Reserves: Smallpox, anthrax, influenza vaccines</li>
+<li>Medical Database: Epidemiological data, treatment protocols</li>
+<li>Laboratory Equipment: PCR machines, centrifuges, incubators</li>
+</ul>`,
+                region: 'cdc', 
+                lat: 33.7990, 
+                lng: -84.3280,
+                imageUrl: 'asset/CDC.png'
+            },
+            { 
+                id: 4, 
+                name: 'CERN', 
+                fullName: 'European Organization for Nuclear Research',
+                description: 'CERN preserves the most cutting-edge knowledge of physics for humanity, and its open science policy enables scientists around the world to share data.',
+                detailedDescription: `<h2>EUROPEAN ORGANIZATION FOR NUCLEAR RESEARCH</h2>
+<p class="coordinates">Coordinates: 46.2330° N, 6.0557° E</p>
+
+<h3>Environmental Overview</h3>
+<p>A massive research facility spanning the French-Swiss border. The surface consists of unremarkable office buildings, while 100 meters underground lies the 27-kilometer circumference Large Hadron Collider tunnel. The control center's circular console still maintains the state of humanity's last experiment, with multiple screens on the walls recording the moment of the Higgs boson discovery.</p>
+
+<h3>Climate Conditions</h3>
+<ul>
+<li>Temperate Oceanic: Cold winters (0-5°C), warm summers (20-25°C)</li>
+<li>Alpine Influence: Foehn winds may cause dramatic temperature changes</li>
+<li>Abundant Rainfall: Humid year-round, moisture protection equipment needed</li>
+<li>Relatively Stable: Distinct seasons but few extreme weather events</li>
+</ul>
+
+<h3>Essential Equipment</h3>
+<ul>
+<li>Technical Tools: Laptop, external hard drives, oscilloscope</li>
+<li>Radiation Protection: Radiation detector, lead vest (for certain areas)</li>
+<li>Exploration Gear: Bicycle (for tunnel inspection), walkie-talkie, laser rangefinder</li>
+<li>Knowledge Acquisition: Camera, scanner, high-capacity storage</li>
+<li>Power Equipment: Portable generator, industrial socket adapters</li>
+</ul>
+
+<h3>Access Method</h3>
+<p>Visitor Center: Ground-level building, easy access, has educational displays</p>
+<ul>
+<li>Control Room: Requires access card or physical breach</li>
+<li>LHC Tunnel Entrances: 8 main entrances (ATLAS, CMS, and other detector locations), requires descending 100-meter deep shafts, emergency lighting and ventilation in tunnels</li>
+<li>Computing Center: Server farms storing experimental data</li>
+</ul>
+
+<h3>Key Resources</h3>
+<ul>
+<li>WWW Original Code: Tim Berners-Lee's office</li>
+<li>Physics Data: Complete documentation of Standard Model, quantum mechanics</li>
+<li>Engineering Blueprints: Accelerator, detector, superconducting magnet technology</li>
+<li>International Collaboration Network: Communication systems connecting to other research institutions worldwide</li>
+</ul>`,
+                region: 'cern', 
+                lat: 46.2330, 
+                lng: 6.0557,
+                imageUrl: 'asset/CERN.png'
+            },
+        ];
+
+        // Custom icon SVG (from seedarchive hover effect) - smaller size
+        const customIconSvg = `<svg width="18" height="33" viewBox="0 0 27 49" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M26.5861 26.4005C26.4861 23.7805 26.2261 21.7305 25.9461 19.4805C25.7561 18.0205 25.6661 17.2505 25.4361 16.1505C25.1661 14.8405 24.7961 13.0705 23.8961 11.0205C22.8761 8.69054 21.6661 7.16054 20.8161 6.09054C19.5861 4.54054 18.8161 3.94054 18.5061 3.72054C17.7061 3.14054 17.5761 3.23054 16.8361 2.63054C15.6161 1.64054 15.6661 1.13054 14.5961 0.520542C14.5961 0.520542 13.6961 -0.0194579 12.8161 0.000542149C12.7461 0.000542149 12.6761 0.000542149 12.6761 0.000542149C12.2061 0.0405421 11.8561 0.190542 11.7161 0.260542C11.5661 0.330542 11.1061 0.560542 10.4361 1.41054C9.98609 1.98054 9.93609 2.19054 9.66609 2.56054C9.01609 3.44054 8.11609 3.77054 7.67609 3.97054C5.15609 5.14054 3.23609 8.94054 2.93609 9.54054C2.48609 10.4405 2.09609 11.7405 1.33609 14.3405C0.926093 15.7205 0.706093 16.4805 0.506093 17.5405C0.176093 19.2705 0.126093 20.5205 0.0560926 22.4705C-0.00390739 24.2805 -0.0739074 26.0805 0.186093 28.4305C0.276093 29.2505 0.416093 30.1505 0.696093 31.9505C0.916093 33.3805 1.02609 33.9105 1.14609 34.4505C1.46609 35.8605 1.82609 36.9005 1.91609 37.1405C2.24609 38.0605 2.81609 39.4905 3.77609 41.1105C4.50609 42.3505 4.97609 43.1505 5.88609 44.0605C6.61609 44.7905 8.03609 46.2105 9.34609 46.1105C9.50609 46.1005 9.85609 46.0505 10.3061 46.1705C10.7961 46.3105 11.0661 46.5505 11.4561 46.8705C12.4661 47.6905 13.1261 48.2105 14.0161 48.4105C14.1061 48.4305 14.2061 48.4405 14.2961 48.4605C14.0461 48.3005 13.6261 47.6105 13.3561 47.1105C12.3461 45.1705 12.3861 43.2605 12.2961 42.8505C11.2961 38.5905 10.7961 36.4605 10.5261 34.0405C10.1061 30.3105 10.3361 27.3905 10.5261 24.9605C10.8161 21.2105 11.1361 21.6405 11.4961 17.4505C11.6861 15.2605 12.0161 11.5105 12.0261 7.63054C12.0261 5.92054 12.3061 6.40054 12.2361 4.69054C12.2261 4.36054 12.0761 3.77054 12.3061 2.95054C12.5961 1.91054 12.8861 0.250542 13.0661 0.360542C13.3561 0.530542 13.7061 1.38054 13.5261 3.00054C13.4561 3.67054 13.4361 4.14054 13.4361 4.95054C13.4361 6.60054 13.1561 7.65054 13.3161 9.02054C13.3161 9.02054 13.4261 10.6105 13.0861 13.1905C12.5961 16.9405 12.7661 17.6805 12.1061 22.2905C11.5561 26.1005 11.9761 29.5005 12.2861 32.0205C12.5561 34.2205 12.7161 34.2205 12.9961 36.7505C13.4261 40.6305 13.1061 41.2805 13.6161 44.1705C14.0561 46.6505 14.6661 48.3605 14.4161 48.5105C14.5861 48.5305 14.7661 48.5405 14.9661 48.5105C14.9661 48.5105 15.5461 48.4105 17.0161 47.0405C20.7061 45.6805 21.6961 44.6105 21.6961 44.6105C21.9161 44.3705 22.0561 44.1705 22.3361 43.7805C22.5561 43.4705 23.6161 41.9405 24.5761 39.5505C25.0961 38.2605 25.9161 36.1705 26.3661 33.2705C26.7261 30.9605 26.6661 29.3205 26.5561 26.4205L26.5861 26.4005Z" fill="black"/></svg>`;
+
+        // Create custom icon
+        function createCustomIcon() {
+            return L.divIcon({
+                className: 'custom-marker-icon',
+                html: customIconSvg,
+                iconSize: [18, 33],
+                iconAnchor: [9, 33],
+                popupAnchor: [0, -33]
+            });
+        }
+
+        // Create user location icon (logo)
+        function createUserLocationIcon() {
+            const logoSvg = `<svg width="30" height="30" viewBox="0 0 73 73" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g clip-path="url(#clip0_user_logo)">
+                    <path d="M44.2231 37.5504C44.2231 37.8504 44.2088 38.1648 44.166 38.4648L64.8271 46.7665C65.713 45.7234 67.2133 45.309 68.5422 45.852C70.2282 46.5236 71.0426 48.4382 70.3568 50.1243C69.6852 51.8103 67.7706 52.6248 66.0845 51.9532C64.7414 51.4102 63.9555 50.0814 64.0413 48.7097L43.6516 40.5224C43.4944 40.9225 43.3086 41.3083 43.1086 41.6655L58.5116 57.0685C59.7404 56.4541 61.2836 56.6541 62.2981 57.6829C63.584 58.9689 63.584 61.055 62.2981 62.3267C61.0121 63.6126 58.9403 63.6126 57.6543 62.3267C56.6255 61.2979 56.4255 59.769 57.0399 58.5402L41.8226 43.3229C41.5226 43.623 41.2082 43.8945 40.8653 44.1374L49.2527 63.8127C50.6244 63.6983 51.9675 64.4556 52.539 65.7845C53.2534 67.4562 52.4676 69.3852 50.8101 70.0996C49.1384 70.814 47.2094 70.0282 46.495 68.3707C45.9234 67.0276 46.3092 65.5416 47.338 64.6271L39.0364 45.1519C38.5506 45.3376 38.0505 45.4805 37.5361 45.5805V66.6418C38.8363 67.0704 39.7794 68.2993 39.7794 69.7424C39.7794 71.557 38.3077 73.0287 36.493 73.0287C34.6784 73.0287 33.2067 71.557 33.2067 69.7424C33.2067 68.2993 34.1497 67.0704 35.45 66.6418V45.6948C34.9641 45.6662 34.4783 45.5805 34.0211 45.4662L26.2196 64.8557C27.2769 65.7416 27.677 67.2419 27.134 68.5707C26.4625 70.2568 24.5478 71.0712 22.8618 70.3997C21.1757 69.7138 20.3613 67.7992 21.0329 66.1131C21.5758 64.77 22.9046 63.9841 24.2763 64.0699L32.0779 44.6661C31.6064 44.3946 31.1634 44.0802 30.749 43.723L15.9319 58.5402C16.5463 59.769 16.3462 61.3122 15.3175 62.3267C14.0315 63.6126 11.9454 63.6126 10.6737 62.3267C9.38772 61.055 9.38772 58.9689 10.6737 57.6829C11.7025 56.6541 13.2313 56.4541 14.4601 57.0685L29.3488 42.1656C29.0916 41.7941 28.863 41.394 28.6629 40.9796L9.18768 49.2812C9.30199 50.6529 8.5447 51.9961 7.21587 52.5676C5.54411 53.282 3.61516 52.4962 2.90074 50.8387C2.18631 49.1669 2.97218 47.238 4.62965 46.5236C5.97277 45.952 7.45877 46.3378 8.37324 47.3666L28.0485 38.9792C27.9628 38.522 27.9199 38.0362 27.9199 37.5647H6.40142C5.97277 38.8649 4.74395 39.808 3.30081 39.808C1.22898 39.808 -0.385621 37.9219 0.100188 35.7786C0.357381 34.6212 1.27185 33.6639 2.41493 33.3638C4.21528 32.8923 5.88703 33.9211 6.40142 35.4928H28.22C28.32 35.1499 28.4343 34.7927 28.5629 34.4641L8.18748 26.2767C7.3016 27.3341 5.8013 27.7342 4.47247 27.1912C2.78643 26.5196 1.97198 24.605 2.64354 22.9189C3.32939 21.2329 5.22976 20.4185 6.9301 21.09C8.27322 21.633 9.05908 22.9761 8.97335 24.3335L29.6345 32.6351C29.8489 32.3494 30.0918 32.0779 30.349 31.835L14.503 15.989C13.2742 16.6034 11.731 16.4034 10.7166 15.3746C9.43058 14.0886 9.43058 12.0025 10.7166 10.7308C11.9882 9.44487 14.0744 9.44487 15.3603 10.7308C16.3891 11.7596 16.5891 13.2885 15.9747 14.5173L32.0064 30.549C32.2208 30.4204 32.4494 30.2918 32.6923 30.1918L23.762 9.24483C22.3903 9.35914 21.0471 8.60185 20.4756 7.27302C19.7612 5.60126 20.547 3.67232 22.2045 2.95789C23.8763 2.24346 25.8052 3.02933 26.5196 4.6868C27.0912 6.02992 26.7054 7.51592 25.6766 8.44468L34.6784 29.5774C34.9356 29.5202 35.2071 29.4917 35.4785 29.4774V6.40142C34.1783 5.97277 33.2352 4.74395 33.2352 3.30081C33.2352 1.22898 35.1213 -0.385621 37.2646 0.100188C38.422 0.357381 39.3793 1.27185 39.6794 2.41493C40.1509 4.21528 39.1221 5.88703 37.5504 6.40142V29.5345C37.879 29.5917 37.8076 29.5917 38.1505 29.6488L46.7808 8.18748C45.7234 7.3016 45.3233 5.8013 45.8663 4.47247C46.5378 2.78643 48.4525 1.97198 50.1385 2.65783C51.8246 3.32939 52.639 5.24405 51.9532 6.9301C51.4102 8.27322 50.0814 9.05908 48.7097 8.97335L40.0652 30.4633C40.2795 30.5919 40.4938 30.7205 40.6938 30.8634L57.0542 14.503C56.4398 13.2742 56.6398 11.731 57.6686 10.7166C58.9546 9.43059 61.0264 9.43059 62.3124 10.7166C63.5983 11.9882 63.5983 14.0744 62.3124 15.3603C61.2836 16.3891 59.7547 16.5891 58.5259 15.9747L42.2513 32.2493C42.3942 32.4208 42.5371 32.5923 42.6657 32.7637L63.7984 23.762C63.6841 22.3903 64.4413 21.0471 65.7702 20.4756C67.4419 19.7612 69.3709 20.547 70.0853 22.2045C70.7997 23.8763 70.0139 25.8052 68.3421 26.5196C67.0133 27.0912 65.513 26.7054 64.5985 25.6766L43.6659 34.6069C43.7802 34.8927 43.8802 35.1785 43.9516 35.4785H66.6132C67.0419 34.1783 68.2707 33.2352 69.7138 33.2352C71.5285 33.2352 73.0002 34.707 73.0002 36.5216C73.0002 38.3362 71.5285 39.808 69.7138 39.808C68.2707 39.808 67.0419 38.8649 66.6132 37.5647H44.2231V37.5504Z" fill="black"/>
+                </g>
+                <defs>
+                    <clipPath id="clip0_user_logo">
+                        <rect width="73" height="73" fill="white"/>
+                    </clipPath>
+                </defs>
+            </svg>`;
+            return L.divIcon({
+                className: 'user-location-icon',
+                html: logoSvg,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15],
+                popupAnchor: [0, -15]
+            });
+        }
+
+        let map;
+        let markers = [];
+        let currentFilter = 'all';
+        let clickedMarker = null;
+        let hoveredMarker = null;
+        let userLocationMarker = null;
+        let routeLayer = null;
+        let isNavigating = false;
+
+        // Initialize Leaflet map
+        function initializeMap() {
+            // Create map centered on world with limited zoom
+            map = L.map('map', {
+                center: [20, 0],
+                zoom: 2,
+                minZoom: 2,
+                maxZoom: 18,
+                zoomControl: true,
+                attributionControl: false,
+                maxBounds: [[-85, -180], [85, 180]],
+                maxBoundsViscosity: 1.0
+            });
+
+            // Add OpenStreetMap tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Ensure map resizes correctly
+            setTimeout(() => {
+                map.invalidateSize();
+                
+                // Force white background on zoom control buttons
+                const zoomButtons = document.querySelectorAll('.leaflet-control-zoom a, .leaflet-bar a');
+                zoomButtons.forEach(btn => {
+                    btn.style.backgroundColor = '#ffffff';
+                    btn.style.background = '#ffffff';
+                    btn.style.setProperty('background-color', '#ffffff', 'important');
+                    btn.style.setProperty('background', '#ffffff', 'important');
+                });
+            }, 100);
+            
+            // Also set styles after a short delay to ensure Leaflet has rendered
+            setTimeout(() => {
+                const zoomButtons = document.querySelectorAll('.leaflet-control-zoom a, .leaflet-bar a');
+                zoomButtons.forEach(btn => {
+                    btn.style.backgroundColor = '#ffffff';
+                    btn.style.background = '#ffffff';
+                    btn.style.setProperty('background-color', '#ffffff', 'important');
+                    btn.style.setProperty('background', '#ffffff', 'important');
+                });
+            }, 500);
+
+            // Add markers for each coordinate
+            coordinateData.forEach(point => {
+                const marker = L.marker([point.lat, point.lng], {
+                    icon: createCustomIcon()
+                }).addTo(map);
+                
+                // Store data in marker
+                marker._data = {
+                    id: point.id,
+                    region: point.region,
+                    name: point.name,
+                    fullName: point.fullName,
+                    description: point.description,
+                    detailedDescription: point.detailedDescription,
+                    lat: point.lat,
+                    lng: point.lng,
+                    imageUrl: point.imageUrl
+                };
+
+                // Hover events
+                marker.on('mouseover', function() {
+                    // Ignore hover when navigating
+                    if (isNavigating) {
+                        return;
+                    }
+                    if (clickedMarker !== marker) {
+                        hoveredMarker = marker;
+                        showLocationInfo(marker._data, false);
+                    }
+                });
+
+                marker.on('mouseout', function() {
+                    // Don't hide info when navigating
+                    if (isNavigating) {
+                        return;
+                    }
+                    hoveredMarker = null;
+                    if (!clickedMarker || clickedMarker !== marker) {
+                        hideLocationInfo();
+                    }
+                });
+
+                // Click event
+                marker.on('click', function(e) {
+                    // If navigating, cancel navigation first
+                    if (isNavigating) {
+                        cancelNavigation();
+                    }
+                    
+                    // Clear previous route if any
+                    if (routeLayer) {
+                        if (Array.isArray(routeLayer)) {
+                            routeLayer.forEach(layer => map.removeLayer(layer));
+                        } else {
+                            map.removeLayer(routeLayer);
+                        }
+                        routeLayer = null;
+                    }
+                    
+                    // Reset navigation status
+                    const satelliteTextEl = document.getElementById('satellite-text');
+                    const navStatusEl = document.getElementById('navigation-status');
+                    const navEtaEl = document.getElementById('navigation-eta');
+                    if (satelliteTextEl) satelliteTextEl.style.display = 'block';
+                    if (navStatusEl) navStatusEl.style.display = 'none';
+                    if (navEtaEl) navEtaEl.style.display = 'none';
+                    
+                    clickedMarker = marker;
+                    hoveredMarker = marker;
+                    showLocationInfo(marker._data, true);
+                    
+                    // Update filter UI to show this location is selected
+                    updateFilterUI(point.region);
+                    
+                    // Zoom to marker location
+                    map.flyTo([point.lat, point.lng], 16, {
+                        animate: true,
+                        duration: 1.0
+                    });
+                });
+
+                markers.push(marker);
+            });
+
+            // Get user location
+            getUserLocation();
+        }
+
+        // Get user location using geolocation API
+        function getUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        // Add user location marker
+                        userLocationMarker = L.marker([lat, lng], {
+                            icon: createUserLocationIcon()
+                        }).addTo(map);
+                        
+                        // Store user location data
+                        userLocationMarker._data = {
+                            isUserLocation: true,
+                            lat: lat,
+                            lng: lng
+                        };
+
+                        // Hover events for user location
+                        userLocationMarker.on('mouseover', function() {
+                            if (clickedMarker !== userLocationMarker) {
+                                hoveredMarker = userLocationMarker;
+                                showUserLocationInfo(userLocationMarker._data);
+                            }
+                        });
+
+                        userLocationMarker.on('mouseout', function() {
+                            // Don't hide info when navigating
+                            if (isNavigating) {
+                                return;
+                            }
+                            hoveredMarker = null;
+                            if (!clickedMarker || clickedMarker !== userLocationMarker) {
+                                hideLocationInfo();
+                            }
+                        });
+
+                        // Double click event to zoom to user location
+                        userLocationMarker.on('dblclick', function() {
+                            map.flyTo([lat, lng], 18, {
+                                animate: true,
+                                duration: 1.0
+                            });
+                        });
+                    },
+                    function(error) {
+                        console.log('Error getting user location:', error);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                console.log('Geolocation is not supported by this browser.');
+            }
+        }
+
+        // Filter coordinates function
+        // Update filter UI state
+        function updateFilterUI(region) {
+            currentFilter = region;
+            
+            // Update active state
+            document.querySelectorAll('.legend-item, .coordinate-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Find and activate the corresponding filter item
+            if (region === 'all') {
+                const allItem = document.querySelector('.legend-item[data-filter="all"]');
+                if (allItem) allItem.classList.add('active');
+            } else {
+                const filterItem = document.querySelector(`.coordinate-item[data-region="${region}"]`);
+                if (filterItem) filterItem.classList.add('active');
+            }
+        }
+
+        function filterCoordinates(region) {
+            updateFilterUI(region);
+            
+            // If clicking a specific location, show its info and zoom to it
+            if (region !== 'all') {
+                // Cancel navigation if active
+                if (isNavigating) {
+                    cancelNavigation();
+                }
+                
+                // Clear previous route if any
+                if (routeLayer) {
+                    if (Array.isArray(routeLayer)) {
+                        routeLayer.forEach(layer => map.removeLayer(layer));
+                    } else {
+                        map.removeLayer(routeLayer);
+                    }
+                    routeLayer = null;
+                }
+                
+                // Reset navigation status
+                const satelliteTextEl = document.getElementById('satellite-text');
+                const navStatusEl = document.getElementById('navigation-status');
+                const navEtaEl = document.getElementById('navigation-eta');
+                if (satelliteTextEl) satelliteTextEl.style.display = 'block';
+                if (navStatusEl) navStatusEl.style.display = 'none';
+                if (navEtaEl) navEtaEl.style.display = 'none';
+                
+                const marker = markers.find(m => m._data.region === region);
+                if (marker) {
+                    clickedMarker = marker;
+                    hoveredMarker = marker;
+                    showLocationInfo(marker._data, true);
+                    
+                    // Zoom to marker location
+                    map.flyTo([marker._data.lat, marker._data.lng], 16, {
+                        animate: true,
+                        duration: 1.0
+                    });
+                }
+            } else {
+                // If navigating, don't clear info when clicking "all"
+                if (!isNavigating) {
+                    clickedMarker = null;
+                    hoveredMarker = null;
+                    hideLocationInfo();
+                }
+                // Reset to world view
+                map.flyTo([20, 0], 2, {
+                    animate: true,
+                    duration: 1.0
+                });
+            }
+            
+            // Apply filters
+            applyFilters();
+        }
+
+        // Update location-info position to be below legend-panel
+        function updateLocationInfoPosition() {
+            const legendPanel = document.querySelector('.legend-panel');
+            const infoPanel = document.getElementById('location-info');
+            if (legendPanel && infoPanel) {
+                const legendRect = legendPanel.getBoundingClientRect();
+                const topPosition = legendRect.bottom + 20; // 20px gap
+                infoPanel.style.top = topPosition + 'px';
+                infoPanel.style.bottom = 'auto';
+            }
+        }
+
+        // Show location info
+        function showLocationInfo(data, isClicked) {
+            const infoPanel = document.getElementById('location-info');
+            const titleEl = document.getElementById('location-title');
+            const descEl = document.getElementById('location-description');
+            const coordEl = document.getElementById('location-coordinates');
+            const satelliteEl = document.getElementById('location-satellite');
+            const satelliteTextEl = document.getElementById('satellite-text');
+            const navStatusEl = document.getElementById('navigation-status');
+            const navEtaEl = document.getElementById('navigation-eta');
+
+            titleEl.textContent = data.fullName.toUpperCase();
+            descEl.textContent = data.description || '';
+            coordEl.textContent = `Coordinates: ${data.lat.toFixed(4)}°N, ${data.lng.toFixed(4)}°E`;
+            
+            if (isClicked) {
+                satelliteEl.classList.add('visible');
+                // Reset to show "satellite navigation" text
+                if (satelliteTextEl) satelliteTextEl.style.display = 'block';
+                if (navStatusEl) navStatusEl.style.display = 'none';
+                if (navEtaEl) navEtaEl.style.display = 'none';
+            } else {
+                satelliteEl.classList.remove('visible');
+            }
+
+            infoPanel.classList.add('visible');
+            // Update position to be below legend-panel
+            updateLocationInfoPosition();
+        }
+
+        // Show user location info
+        function showUserLocationInfo(data) {
+            const infoPanel = document.getElementById('location-info');
+            const titleEl = document.getElementById('location-title');
+            const descEl = document.getElementById('location-description');
+            const coordEl = document.getElementById('location-coordinates');
+            const satelliteEl = document.getElementById('location-satellite');
+
+            titleEl.textContent = 'ME';
+            descEl.textContent = '';
+            coordEl.textContent = `Coordinates: ${data.lat.toFixed(4)}°N, ${data.lng.toFixed(4)}°E`;
+            satelliteEl.classList.remove('visible');
+
+            infoPanel.classList.add('visible');
+        }
+
+        // Hide location info
+        function hideLocationInfo() {
+            // Don't hide info when navigating (navigation info should persist)
+            if (isNavigating) {
+                return;
+            }
+            const infoPanel = document.getElementById('location-info');
+            infoPanel.classList.remove('visible');
+        }
+
+        // Cancel navigation
+        function cancelNavigation() {
+            isNavigating = false;
+            
+            // Clear route
+            if (routeLayer) {
+                if (Array.isArray(routeLayer)) {
+                    routeLayer.forEach(layer => map.removeLayer(layer));
+                } else {
+                    map.removeLayer(routeLayer);
+                }
+                routeLayer = null;
+            }
+            
+            // Reset navigation status display
+            const satelliteTextEl = document.getElementById('satellite-text');
+            const navStatusEl = document.getElementById('navigation-status');
+            const navEtaEl = document.getElementById('navigation-eta');
+            if (satelliteTextEl) satelliteTextEl.style.display = 'block';
+            if (navStatusEl) navStatusEl.style.display = 'none';
+            if (navEtaEl) navEtaEl.style.display = 'none';
+            
+            // Hide location detail section
+            const locationDetail = document.getElementById('location-detail');
+            if (locationDetail) {
+                locationDetail.style.display = 'none';
+            }
+        }
+
+        // Calculate route from user location to destination
+        async function calculateRoute(destinationLat, destinationLng) {
+            if (!userLocationMarker || !userLocationMarker._data) {
+                alert('User location not available');
+                return;
+            }
+
+            const startLat = userLocationMarker._data.lat;
+            const startLng = userLocationMarker._data.lng;
+
+            // Set navigating state
+            isNavigating = true;
+            
+            // Update filter UI to show the selected location
+            if (clickedMarker && clickedMarker._data) {
+                updateFilterUI(clickedMarker._data.region);
+            }
+            
+            // Show navigation status in satellite navigation box
+            const satelliteEl = document.getElementById('location-satellite');
+            const satelliteTextEl = document.getElementById('satellite-text');
+            const navStatusEl = document.getElementById('navigation-status');
+            const navEtaEl = document.getElementById('navigation-eta');
+            if (satelliteEl && satelliteTextEl && navStatusEl && navEtaEl) {
+                satelliteTextEl.style.display = 'none';
+                navStatusEl.style.display = 'block';
+                navStatusEl.textContent = 'Navigating';
+                navEtaEl.style.display = 'block';
+                navEtaEl.textContent = 'Calculating...';
+            }
+            
+            // Show location detail section with image and description
+            if (clickedMarker && clickedMarker._data) {
+                const locationDetail = document.getElementById('location-detail');
+                const locationImage = document.getElementById('location-image');
+                const locationDetailDesc = document.getElementById('location-detail-description');
+                
+                if (locationDetail) {
+                    locationDetail.style.display = 'block';
+                    
+                    // Set image
+                    if (locationImage) {
+                        locationImage.src = clickedMarker._data.imageUrl || '';
+                        locationImage.alt = clickedMarker._data.fullName;
+                    }
+                    
+                    // Set description (use detailedDescription if available, otherwise use description)
+                    if (locationDetailDesc) {
+                        const description = clickedMarker._data.detailedDescription || clickedMarker._data.description || '';
+                        // If it contains HTML tags, use innerHTML, otherwise use textContent
+                        if (description.includes('<') && description.includes('>')) {
+                            locationDetailDesc.innerHTML = description;
+                        } else {
+                            locationDetailDesc.textContent = description;
+                        }
+                    }
+                    
+                    // Scroll to location detail
+                    setTimeout(() => {
+                        locationDetail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                }
+            }
+
+            // Remove existing route if any (ensure only one route is displayed)
+            if (routeLayer) {
+                if (Array.isArray(routeLayer)) {
+                    routeLayer.forEach(layer => map.removeLayer(layer));
+                } else {
+                    map.removeLayer(routeLayer);
+                }
+                routeLayer = null;
+            }
+
+            try {
+                // Use OSRM routing service with steps to detect ferry/water segments
+                const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${destinationLng},${destinationLat}?overview=full&geometries=geojson&steps=true`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                    const route = data.routes[0];
+                    const layers = [];
+                    let landStart = null;
+                    let landEnd = null;
+                    let ferryStart = null;
+                    let ferryEnd = null;
+                    
+                    // Process route segments to find ferry/water parts
+                    let foundFerry = false;
+                    if (route.legs && route.legs.length > 0) {
+                        route.legs.forEach(leg => {
+                            if (leg.steps) {
+                                leg.steps.forEach((step, stepIndex) => {
+                                    const coordinates = step.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                                    const isFerry = step.mode === 'ferry' || step.driving_side === null;
+                                    
+                                    if (isFerry) {
+                                        foundFerry = true;
+                                        // This is a ferry/water segment - store start and end points
+                                        if (!ferryStart) {
+                                            ferryStart = coordinates[0];
+                                        }
+                                        ferryEnd = coordinates[coordinates.length - 1];
+                                    } else {
+                                        // This is a land segment
+                                        if (!foundFerry) {
+                                            // Before ferry - add to land route
+                                            if (!landStart) {
+                                                landStart = [];
+                                            }
+                                            // Avoid duplicates
+                                            if (landStart.length === 0 || 
+                                                landStart[landStart.length - 1][0] !== coordinates[0][0] || 
+                                                landStart[landStart.length - 1][1] !== coordinates[0][1]) {
+                                                landStart.push(...coordinates);
+                                            } else {
+                                                landStart.push(...coordinates.slice(1));
+                                            }
+                                        } else {
+                                            // After ferry - store for later
+                                            if (!landEnd) {
+                                                landEnd = [];
+                                            }
+                                            // Avoid duplicates
+                                            if (landEnd.length === 0 || 
+                                                landEnd[landEnd.length - 1][0] !== coordinates[0][0] || 
+                                                landEnd[landEnd.length - 1][1] !== coordinates[0][1]) {
+                                                landEnd.push(...coordinates);
+                                            } else {
+                                                landEnd.push(...coordinates.slice(1));
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    
+                    // If ferry detected, create land route + straight water line
+                    if (ferryStart && ferryEnd) {
+                        // Land route before ferry (from start to ferry start)
+                        if (landStart && landStart.length > 0) {
+                            const landPolyline = L.polyline(landStart, {
+                                color: 'black',
+                                weight: 1,
+                                opacity: 1
+                            }).addTo(map);
+                            layers.push(landPolyline);
+                        } else {
+                            // No land route before ferry, connect start directly to ferry start (water line - dashed)
+                            const startToFerry = L.polyline([[startLat, startLng], ferryStart], {
+                                color: 'black',
+                                weight: 1,
+                                opacity: 1,
+                                dashArray: '5, 5'
+                            }).addTo(map);
+                            layers.push(startToFerry);
+                        }
+                        
+                        // Straight line for water (from ferry start to ferry end) - dashed
+                        const waterLine = L.polyline([ferryStart, ferryEnd], {
+                            color: 'black',
+                            weight: 1,
+                            opacity: 1,
+                            dashArray: '5, 5'
+                        }).addTo(map);
+                        layers.push(waterLine);
+                        
+                        // Land route after ferry (from ferry end to destination)
+                        if (landEnd && landEnd.length > 0) {
+                            const landPolyline2 = L.polyline(landEnd, {
+                                color: 'black',
+                                weight: 1,
+                                opacity: 1
+                            }).addTo(map);
+                            layers.push(landPolyline2);
+                        } else {
+                            // No land route after ferry, connect ferry end directly to destination (water line - dashed)
+                            const ferryToEnd = L.polyline([ferryEnd, [destinationLat, destinationLng]], {
+                                color: 'black',
+                                weight: 1,
+                                opacity: 1,
+                                dashArray: '5, 5'
+                            }).addTo(map);
+                            layers.push(ferryToEnd);
+                        }
+                    } else {
+                        // No ferry - use full route as normal
+                        const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                        const polyline = L.polyline(coordinates, {
+                            color: 'black',
+                            weight: 1,
+                            opacity: 1
+                        }).addTo(map);
+                        layers.push(polyline);
+                    }
+                    
+                    routeLayer = layers.length === 1 ? layers[0] : layers;
+                    
+                    // Calculate ETA (Estimated Time of Arrival)
+                    const duration = route.duration; // in seconds
+                    const hours = Math.floor(duration / 3600);
+                    const minutes = Math.floor((duration % 3600) / 60);
+                    let etaText = '';
+                    if (hours > 0) {
+                        etaText = `${hours}h ${minutes}m`;
+                    } else {
+                        etaText = `${minutes}m`;
+                    }
+                    
+                    // Update ETA display
+                    if (navEtaEl) {
+                        navEtaEl.textContent = `ETA: ${etaText}`;
+                    }
+                    
+                    // Fit map to show the entire route
+                    let bounds = null;
+                    if (Array.isArray(routeLayer)) {
+                        bounds = routeLayer[0].getBounds();
+                        routeLayer.forEach(layer => {
+                            bounds.extend(layer.getBounds());
+                        });
+                    } else {
+                        bounds = routeLayer.getBounds();
+                    }
+                    
+                    map.fitBounds(bounds, {
+                        padding: [50, 50]
+                    });
+                } else {
+                    // If route not found, try direct connection (might be over water) - use dashed line
+                    const directLine = L.polyline([[startLat, startLng], [destinationLat, destinationLng]], {
+                        color: 'black',
+                        weight: 1,
+                        opacity: 1,
+                        dashArray: '5, 5'
+                    }).addTo(map);
+                    routeLayer = directLine;
+                    
+                    // Update ETA for direct line (estimate based on distance)
+                    const distance = map.distance([startLat, startLng], [destinationLat, destinationLng]) / 1000; // km
+                    const estimatedHours = Math.ceil(distance / 50); // Assume 50 km/h average
+                    if (navEtaEl) {
+                        navEtaEl.textContent = `ETA: ~${estimatedHours} hours`;
+                    }
+                    
+                    map.fitBounds(directLine.getBounds(), {
+                        padding: [50, 50]
+                    });
+                }
+            } catch (error) {
+                console.error('Error calculating route:', error);
+                isNavigating = false;
+                
+                // On error, show direct line (dashed for water)
+                const directLine = L.polyline([[startLat, startLng], [destinationLat, destinationLng]], {
+                    color: 'black',
+                    weight: 1,
+                    opacity: 1,
+                    dashArray: '5, 5'
+                }).addTo(map);
+                routeLayer = directLine;
+                
+                // Update ETA for error case
+                if (navEtaEl) {
+                    navEtaEl.textContent = 'ETA: Calculation failed';
+                }
+                
+                map.fitBounds(directLine.getBounds(), {
+                    padding: [50, 50]
+                });
+            }
+        }
+
+        // Setup satellite navigation click event
+        function setupSatelliteNavigation() {
+            const satelliteEl = document.getElementById('location-satellite');
+            const navStatusEl = document.getElementById('navigation-status');
+            if (satelliteEl) {
+                satelliteEl.addEventListener('click', function(e) {
+                    // If navigating, clicking anywhere in the box cancels navigation
+                    if (isNavigating) {
+                        cancelNavigation();
+                        return;
+                    }
+                    
+                    // Start navigation
+                    if (clickedMarker && clickedMarker._data) {
+                        calculateRoute(clickedMarker._data.lat, clickedMarker._data.lng);
+                    }
+                });
+            }
+        }
+
+        // Apply all active filters
+        function applyFilters() {
+            markers.forEach(marker => {
+                const markerRegion = marker._data.region;
+                
+                let shouldShow = true;
+                
+                // Apply region filter
+                if (currentFilter !== 'all') {
+                    shouldShow = markerRegion === currentFilter;
+                }
+                
+                // Show/hide marker
+                if (shouldShow) {
+                    if (map.hasLayer(marker)) {
+                        // Already visible
+                    } else {
+                        marker.addTo(map);
+                    }
+                } else {
+                    if (map.hasLayer(marker)) {
+                        map.removeLayer(marker);
+                    }
+                }
+            });
+            
+            // User location marker should always be visible
+            if (userLocationMarker && !map.hasLayer(userLocationMarker)) {
+                userLocationMarker.addTo(map);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMap();
+            
+            // Update location-info position on window resize
+            window.addEventListener('resize', function() {
+                const infoPanel = document.getElementById('location-info');
+                if (infoPanel && infoPanel.classList.contains('visible')) {
+                    updateLocationInfoPosition();
+                }
+            });
+            setupSatelliteNavigation();
+        });
+    </script>
+</body>
+</html>
+

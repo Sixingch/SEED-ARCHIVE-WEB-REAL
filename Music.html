@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music - SEEDARCHIVE</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: white;
+            padding: 20px 5px;
+            min-height: 100vh;
+            overflow-y: auto;
+            padding-top: 60px;
+        }
+        
+        a, button, [onclick], [role="button"], .clickable, *[cursor="pointer"], *[style*="cursor: pointer"] {
+            cursor: pointer !important;
+        }
+
+        .top-tab {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: white;
+            border-bottom: 1px solid black;
+            z-index: 1000;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+
+        .scrolling-text-container {
+            display: flex;
+            white-space: nowrap;
+            animation: scrollText 30s linear infinite;
+            position: absolute;
+            left: 0;
+            will-change: transform;
+        }
+
+        .scrolling-text {
+            font-size: 16px;
+            color: black;
+            padding-right: 50px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        @keyframes scrollText {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .step-layout {
+            display: block;
+            flex: 1;
+            max-width: calc(100% - 215px);
+            margin-bottom: 100px;
+        }
+
+        .step-section {
+            margin-bottom: 40px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .step-section .step-title {
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .step-image {
+            width: 100%;
+            border: 1px solid black;
+            background: white;
+            margin-bottom: 20px;
+            aspect-ratio: 1;
+            max-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: visible;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .step-image img,
+        .step-image svg {
+            width: calc(100% - 40px);
+            height: calc(100% - 40px);
+            object-fit: contain;
+        }
+
+        /* Make instrument SVGs clickable */
+        #instrument-image {
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+            overflow: visible;
+        }
+
+        #instrument-image:hover {
+            opacity: 0.8;
+        }
+
+        #instrument-image svg {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+        }
+
+        #instrument-image:hover svg {
+            transform: scale(1.1);
+        }
+
+        /* 确保所有step-image中的SVG都是实线 */
+        .step-image svg * {
+            stroke-dasharray: none !important;
+            stroke-dashoffset: 0 !important;
+        }
+
+        /* Introduction 部分的 SVG stroke-width 设置为 1px */
+        #introduction .step-image svg * {
+            stroke-width: 1px !important;
+        }
+
+        .step-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .step-content {
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* Step navigation panel */
+        .step-navigation {
+            display: block;
+            position: fixed;
+            top: 80px;
+            right: 50px;
+            width: 200px;
+            padding: 20px;
+            background: white;
+            border: 1px solid black;
+            box-sizing: border-box;
+            z-index: 100;
+        }
+
+        .step-nav-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .step-nav-item:hover {
+            font-weight: bold;
+        }
+
+        .step-nav-item.active {
+            font-weight: bold;
+        }
+
+        .step-nav-item .legend-text {
+            font-size: 12px;
+            color: black;
+            white-space: nowrap;
+        }
+
+        .step-nav-item .legend-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+            flex-shrink: 0;
+            box-sizing: border-box;
+            background: black;
+        }
+
+        .step-nav-item.active .legend-dot {
+            border: 1px solid black;
+            background: white !important;
+        }
+
+        /* Close button for back */
+        .step-nav-close {
+            position: relative;
+            width: 30px;
+            height: 30px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .step-nav-close::before,
+        .step-nav-close::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 1px;
+            background: black;
+        }
+
+        .step-nav-close::before {
+            transform: rotate(45deg);
+        }
+
+        .step-nav-close::after {
+            transform: rotate(-45deg);
+        }
+
+        /* Music interaction section */
+        .music-interaction-box {
+            width: 100%;
+            border: 1px solid black;
+            background: white;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .music-interaction-steps {
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .music-interaction-step {
+            cursor: pointer;
+            padding: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .music-interaction-step:hover {
+            font-weight: bold;
+        }
+
+        .music-interaction-step.active {
+            font-weight: bold;
+        }
+
+        .music-interaction-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .music-interaction-canvas {
+            width: 100%;
+            aspect-ratio: 1;
+            max-height: 50vh;
+            border: 1px solid black;
+            background: white;
+            margin-bottom: 20px;
+            cursor: crosshair;
+            display: block;
+        }
+
+        .music-interaction-description {
+            font-size: 18px;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .play-button {
+            padding: 8px 16px;
+            background: white;
+            color: black;
+            border: 1px solid black;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        
+        a, button, [onclick], [role="button"], .clickable, #instrument-image {
+            cursor: pointer !important;
+        }
+
+        .play-button:hover {
+            background: black;
+            color: white;
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-tab">
+        <div class="scrolling-text-container">
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+            <div class="scrolling-text">@SEEDARCHIVEWEB  FIND YOUR SEED</div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="main-layout">
+            <!-- Step-by-step Layout -->
+            <div class="step-layout" id="step-layout">
+                <div class="step-section" id="introduction">
+                    <div class="step-image">
+                        <svg width="288" height="288" viewBox="0 0 288 288" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <style>.cls-1{fill:#fff;stroke:#000;stroke-miterlimit:10;stroke-width:1px;}</style>
+                            </defs>
+                            <path class="cls-1" d="M116.15,171.04v-68.68h-.15v-.12l-54.1,7.2v.12h-.2v62.33c-1.43-.75-3.1-1.19-4.88-1.19-5.3,0-9.6,3.81-9.6,8.52s4.3,8.52,9.6,8.52,9.6-3.81,9.6-8.52c0-.12-.01-.23-.02-.35h.02v-63.38l45.01-7.2v56.12c-1.42-.74-3.07-1.17-4.84-1.17-5.3,0-9.6,3.81-9.6,8.52s4.3,8.52,9.6,8.52,9.6-3.81,9.6-8.52c0-.24-.02-.48-.04-.72Z"/>
+                            <path class="cls-1" d="M220.18,214.4v-68.68h-.15v-.12l-54.1,7.2v.12h-.2v62.33c-1.43-.75-3.1-1.19-4.88-1.19-5.3,0-9.6,3.81-9.6,8.52s4.3,8.52,9.6,8.52,9.6-3.81,9.6-8.52c0-.12-.01-.23-.02-.35h.02v-63.38l45.01-7.2v56.12c-1.42-.74-3.07-1.17-4.84-1.17-5.3,0-9.6,3.81-9.6,8.52s4.3,8.52,9.6,8.52,9.6-3.81,9.6-8.52c0-.24-.02-.48-.04-.72Z"/>
+                            <path class="cls-1" d="M211.68,112.07V43.39h-.15v-.12l-54.1,7.2v.12h-.2v62.33c-1.43-.75-3.1-1.19-4.88-1.19-5.3,0-9.6,3.81-9.6,8.52s4.3,8.52,9.6,8.52,9.6-3.81,9.6-8.52c0-.12-.01-.23-.02-.35h.02v-63.38l45.01-7.2v56.12c-1.42-.74-3.07-1.17-4.84-1.17-5.3,0-9.6,3.81-9.6,8.52s4.3,8.52,9.6,8.52,9.6-3.81,9.6-8.52c0-.24-.02-.48-.04-.72Z"/>
+                        </svg>
+                    </div>
+                    <div class="step-title">INTRODUCTION</div>
+                    <div class="step-content">
+                        Music serves as a fundamental form of human expression and communication that transcends language barriers. In a post-apocalyptic world where digital technology may no longer be available, preserving and passing on musical knowledge becomes crucial for maintaining cultural identity, emotional well-being, and community cohesion. This section provides guidance on basic music theory, instrument construction, and methods for recording and preserving musical traditions using low-tech approaches.
+                    </div>
+                </div>
+
+                <div class="step-section" id="music-interaction">
+                    <div class="music-interaction-box">
+                        <div class="music-interaction-steps">
+                            <div class="music-interaction-step active" onclick="showMusicStep(1, this)">PITCH</div>
+                            <div class="music-interaction-step" onclick="showMusicStep(2, this)">PIANO</div>
+                            <div class="music-interaction-step" onclick="showMusicStep(3, this)">WHISTLE</div>
+                            <div class="music-interaction-step" onclick="showMusicStep(4, this)">DRUMS</div>
+                            <div class="music-interaction-step" onclick="showMusicStep(5, this)">BASS</div>
+                        </div>
+                        <div class="music-interaction-content">
+                            <div class="audio-controls" id="audio-controls">
+                                <button class="play-button" id="play-button" onclick="togglePlayback()">PLAY</button>
+                            </div>
+                            <canvas class="music-interaction-canvas" id="spectrum-canvas"></canvas>
+                        </div>
+                    </div>
+                    <div class="step-title" id="music-interaction-title">Understanding Sound</div>
+                    <div class="music-interaction-description" id="music-description">Hold and drag your mouse in the blank area to control pitch. The spectrum visualization shows frequency response in black and white.</div>
+                </div>
+
+                <!-- Instruments Section -->
+                <div class="step-section" id="instruments">
+                    <div class="music-interaction-box">
+                        <div class="music-interaction-steps">
+                            <div class="music-interaction-step active" onclick="showInstrument(1, this)">BUCKET DRUM</div>
+                            <div class="music-interaction-step" onclick="showInstrument(2, this)">BOTTLE CAP SHAKER</div>
+                            <div class="music-interaction-step" onclick="showInstrument(3, this)">SHOE BOX BASS</div>
+                            <div class="music-interaction-step" onclick="showInstrument(4, this)">BAMBOO FLUTE</div>
+                        </div>
+                        <div class="music-interaction-content">
+                            <div id="instrument-image" onclick="playInstrumentSound(currentInstrument)" style="cursor: pointer; width: 100%; aspect-ratio: 1; max-height: 50vh; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; min-height: 300px;">
+                                <!-- SVG will be inserted here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="step-title" id="instrument-title">BUCKET DRUM</div>
+                    <div class="music-interaction-description" id="instrument-description">
+                        <p><strong>Materials:</strong> Plastic bucket/metal bucket, plastic sheet/leather/thick rubber, rope/wire, tape</p>
+                        <p><strong>Steps:</strong></p>
+                        <ul>
+                            <li>Clean the bucket body, ensure edges are smooth without burrs</li>
+                            <li>Cut the membrane material into a circle 10-15cm larger than the bucket opening</li>
+                            <li>Soak the membrane material in water (if using leather, soak for 2 hours)</li>
+                            <li>Pull the membrane tight over the bucket opening, tie with rope below the rim</li>
+                            <li>Create a Z-shaped tension system for adjustable tightness</li>
+                            <li>Air dry for 24 hours, maintaining tension during this period</li>
+                        </ul>
+                        <p><strong>Pitch adjustment techniques:</strong> Adding different amounts of water inside the bucket changes pitch; heating the drumhead raises the tone; humid environments lower the pitch</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step Navigation Panel -->
+            <div class="step-navigation" id="step-navigation">
+                <div class="step-nav-item" onclick="backToGrid()">
+                    <div class="step-nav-close"></div>
+                </div>
+                <div class="step-nav-item active" data-step="introduction" onclick="scrollToStep('introduction')">
+                    <div class="legend-dot"></div>
+                    <div class="legend-text">INTRODUCTION</div>
+                </div>
+                <div class="step-nav-item" data-step="music-interaction" onclick="scrollToStep('music-interaction')">
+                    <div class="legend-dot"></div>
+                    <div class="legend-text">UNDERSTANDING</div>
+                </div>
+                <div class="step-nav-item" data-step="instruments" onclick="scrollToStep('instrument-1')">
+                    <div class="legend-dot"></div>
+                    <div class="legend-text">INSTRUMENTS</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Scroll to step function
+        function scrollToStep(stepId) {
+            const stepElement = document.getElementById(stepId);
+            if (stepElement) {
+                // Get the navigation panel top position (80px)
+                const navTop = 80;
+                // Get the element's position relative to the document
+                const elementTop = stepElement.offsetTop;
+                // Calculate scroll position to align element top with navigation top
+                const scrollPosition = elementTop - navTop;
+                
+                // Smooth scroll to the calculated position
+                window.scrollTo({
+                    top: scrollPosition,
+                    behavior: 'smooth'
+                });
+                
+                // Update active state
+                document.querySelectorAll('.step-nav-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.getAttribute('data-step') === stepId) {
+                        item.classList.add('active');
+                    }
+                });
+            }
+        }
+
+        // Back to grid function (goes back to seedarchive.html)
+        function backToGrid() {
+            window.location.href = 'seedarchive.html';
+        }
+
+        // Music interaction variables
+        let audioContext = null;
+        let analyser = null;
+        let oscillator = null;
+        let gainNode = null;
+        let isPlaying = false;
+        let currentStep = 1;
+        let audioElement = null;
+        let audioSource = null;
+        let animationFrameId = null;
+        let isMouseDown = false;
+        let currentFrequency = 440;
+        
+        // Spectrum history for scrolling effect
+        let spectrumHistory = [];
+        const maxHistoryLength = 200; // Number of frames to keep in history
+
+        // Initialize audio context
+        function initAudioContext() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    gainNode = audioContext.createGain();
+                    gainNode.gain.value = 0.3;
+                    console.log('Audio context initialized, state:', audioContext.state);
+                } catch(e) {
+                    console.error('Error initializing audio context:', e);
+                }
+            }
+            return audioContext;
+        }
+
+        // Draw spectrum visualization with scrolling effect
+        function drawSpectrum() {
+            const canvas = document.getElementById('spectrum-canvas');
+            if (!canvas) {
+                animationFrameId = requestAnimationFrame(drawSpectrum);
+                return;
+            }
+            
+            // Ensure canvas has valid dimensions
+            if (canvas.width === 0 || canvas.height === 0) {
+                const container = canvas.parentElement;
+                if (container && container.offsetWidth > 0) {
+                    const size = Math.min(container.offsetWidth - 40, window.innerHeight * 0.5);
+                    canvas.width = size;
+                    canvas.height = size;
+                } else {
+                    animationFrameId = requestAnimationFrame(drawSpectrum);
+                    return;
+                }
+            }
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Clear canvas with white background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, width, height);
+
+            // Check if audio is actually playing
+            const hasOscillatorPlaying = oscillator && isPlaying;
+            const hasAudioElementPlaying = audioElement && !audioElement.paused && !audioElement.ended;
+            
+            if (analyser && (hasOscillatorPlaying || hasAudioElementPlaying)) {
+                try {
+                    const bufferLength = analyser.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+                    analyser.getByteFrequencyData(dataArray);
+
+                    // Add current spectrum to history (from right to left)
+                    spectrumHistory.unshift(Array.from(dataArray));
+                    
+                    // Keep only the last maxHistoryLength frames
+                    if (spectrumHistory.length > maxHistoryLength) {
+                        spectrumHistory.pop();
+                    }
+
+                    // Draw scrolling spectrum (like a waveform/spectrogram)
+                    const frameWidth = width / maxHistoryLength;
+                    
+                    for (let frameIndex = 0; frameIndex < spectrumHistory.length; frameIndex++) {
+                        const frameData = spectrumHistory[frameIndex];
+                        let x = width - (frameIndex * frameWidth) - frameWidth;
+                        
+                        // If this frame is completely off screen to the left, stop
+                        if (x + frameWidth < 0) break;
+                        
+                        // If this frame extends past the left edge, adjust it to start at 0
+                        let drawX = Math.max(0, x);
+                        let drawWidth = frameWidth;
+                        
+                        if (x < 0) {
+                            // Frame is partially off screen to the left
+                            drawWidth = x + frameWidth; // Only draw the visible portion
+                        }
+                        
+                        // Ensure the last frame (oldest) always fills to x=0
+                        if (frameIndex === spectrumHistory.length - 1 && drawX > 0) {
+                            drawWidth += drawX; // Extend width to fill from x=0
+                            drawX = 0;
+                        }
+                        
+                        if (drawWidth <= 0) continue; // Skip if nothing to draw
+                        
+                        // Draw each frequency bin as a vertical line
+                        const binHeight = height / bufferLength;
+                        
+                        for (let i = 0; i < bufferLength; i++) {
+                            const intensity = frameData[i] / 255;
+                            const grayValue = Math.floor(intensity * 255);
+                            ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+                            
+                            // Calculate y position - ensure last bin (i=0) starts at y=0
+                            const y = height - ((i + 1) * binHeight);
+                            // For the last bin (i=0), extend to y=0 to fill the bottom
+                            const binY = i === 0 ? 0 : y;
+                            const binDrawHeight = i === 0 ? (height - y) : binHeight;
+                            
+                            ctx.fillRect(drawX, binY, drawWidth, binDrawHeight);
+                        }
+                    }
+                } catch(e) {
+                    // If analyser is not ready, draw empty spectrum
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(0, height / 2);
+                    ctx.lineTo(width, height / 2);
+                    ctx.stroke();
+                }
+            } else {
+                // Draw empty spectrum - horizontal line
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, height / 2);
+                ctx.lineTo(width, height / 2);
+                ctx.stroke();
+                
+                // Clear history when not playing
+                if (spectrumHistory.length > 0) {
+                    spectrumHistory = [];
+                }
+            }
+
+            animationFrameId = requestAnimationFrame(drawSpectrum);
+        }
+
+        // Step 1: Interactive pitch control
+        let pitchControlInitialized = false;
+        let mouseEventHandlers = null;
+        
+        function removePitchControl() {
+            const canvas = document.getElementById('spectrum-canvas');
+            if (!canvas || !pitchControlInitialized) return;
+            
+            // Clone canvas to remove all event listeners
+            const newCanvas = canvas.cloneNode(true);
+            canvas.parentNode.replaceChild(newCanvas, canvas);
+            pitchControlInitialized = false;
+            mouseEventHandlers = null;
+        }
+        
+        function initPitchControl() {
+            const canvas = document.getElementById('spectrum-canvas');
+            if (!canvas) return;
+
+            // Remove old event listeners if already initialized
+            if (pitchControlInitialized) {
+                removePitchControl();
+                // Get the new canvas reference
+                const updatedCanvas = document.getElementById('spectrum-canvas');
+                if (!updatedCanvas) return;
+            }
+
+            const handleMouseDown = (e) => {
+                // Resume audio context if suspended (required by browser autoplay policy)
+                if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                
+                initAudioContext();
+                isMouseDown = true;
+                if (!isPlaying) {
+                    startOscillator();
+                }
+                updatePitch(e);
+            };
+
+            const handleMouseMove = (e) => {
+                if (isMouseDown) {
+                    updatePitch(e);
+                }
+            };
+
+            const handleMouseUp = () => {
+                isMouseDown = false;
+                if (oscillator) {
+                    try {
+                        oscillator.stop();
+                    } catch(e) {}
+                    oscillator = null;
+                    isPlaying = false;
+                }
+            };
+
+            const handleMouseLeave = () => {
+                isMouseDown = false;
+                if (oscillator) {
+                    try {
+                        oscillator.stop();
+                    } catch(e) {}
+                    oscillator = null;
+                    isPlaying = false;
+                }
+            };
+
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            canvas.addEventListener('mouseleave', handleMouseLeave);
+            
+            // Store handlers for potential removal
+            mouseEventHandlers = {
+                mousedown: handleMouseDown,
+                mousemove: handleMouseMove,
+                mouseup: handleMouseUp,
+                mouseleave: handleMouseLeave
+            };
+            
+            pitchControlInitialized = true;
+        }
+
+        function updatePitch(e) {
+            const canvas = document.getElementById('spectrum-canvas');
+            const rect = canvas.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const height = canvas.height;
+            
+            // Map Y position to frequency (100Hz to 2000Hz)
+            const normalizedY = 1 - (y / height);
+            currentFrequency = 100 + (normalizedY * 1900);
+            
+            if (oscillator) {
+                oscillator.frequency.value = currentFrequency;
+            }
+        }
+
+        function startOscillator() {
+            if (!audioContext) {
+                initAudioContext();
+            }
+            
+            // Resume audio context if suspended
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            if (oscillator) {
+                try {
+                    oscillator.stop();
+                } catch(e) {}
+            }
+            
+            try {
+                oscillator = audioContext.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.value = currentFrequency;
+                oscillator.connect(gainNode);
+                gainNode.connect(analyser);
+                analyser.connect(audioContext.destination);
+                oscillator.start();
+                isPlaying = true;
+            } catch(e) {
+                console.error('Error starting oscillator:', e);
+            }
+        }
+
+        // Audio file paths for steps 2-5
+        // To add your audio files, set the paths below:
+        // Example: 2: 'audio/piano.mp3', 3: 'audio/whistle.mp3', etc.
+        // Supported formats: MP3, WAV, OGG, etc. (browser dependent)
+        const audioFiles = {
+            2: 'asset/piano.mp3',  // Piano
+            3: 'asset/whistle.wav', // Whistle
+            4: 'asset/drum.wav',    // Drums
+            5: 'asset/bass.wav'     // Bass
+        };
+
+        // Steps 2-5: Audio playback with loop
+        function loadAudioFile(step) {
+            // Stop any existing audio
+            if (audioSource) {
+                try {
+                    audioSource.stop();
+                } catch(e) {}
+                try {
+                    audioSource.disconnect();
+                } catch(e) {}
+                audioSource = null;
+            }
+            
+            window.currentPlayLoop = null;
+            
+            if (audioElement) {
+                audioElement.pause();
+                audioElement.currentTime = 0;
+                // Create a new element to remove all event listeners
+                const newElement = audioElement.cloneNode(false);
+                audioElement = null;
+            }
+
+            if (!audioContext) {
+                initAudioContext();
+            }
+            
+            if (!audioContext) {
+                console.error('Failed to initialize audio context');
+                return;
+            }
+
+            const audioPath = audioFiles[step];
+            
+            if (!audioPath) {
+                console.error(`No audio file path specified for step ${step}`);
+                return;
+            }
+            
+            // Load actual audio file using HTMLAudioElement (avoids CORS issues)
+            try {
+                console.log(`Loading audio file: ${audioPath} for step ${step}`);
+                
+                // Create audio element
+                // IMPORTANT: Set crossOrigin BEFORE setting src (must be done before load)
+                audioElement = new Audio();
+                audioElement.crossOrigin = "anonymous";
+                audioElement.loop = true;
+                audioElement.src = audioPath;
+                
+                // Handle audio ended event for looping (though loop=true should handle this)
+                const handleAudioEnded = () => {
+                    if (isPlaying && audioElement) {
+                        audioElement.currentTime = 0;
+                        audioElement.play().catch(e => console.error('Error looping audio:', e));
+                    }
+                };
+                audioElement.addEventListener('ended', handleAudioEnded);
+                
+                // Connect audio element to analyser for spectrum visualization
+                const connectToAnalyser = () => {
+                    console.log(`Audio file loaded successfully for step ${step}`);
+                    
+                    // Only connect if not already connected (avoid duplicate connections)
+                    if (audioSource) {
+                        console.log(`Audio source already connected for step ${step}`);
+                        return;
+                    }
+                    
+                    // Create media source from audio element
+                    try {
+                        audioSource = audioContext.createMediaElementSource(audioElement);
+                        audioSource.connect(analyser);
+                        analyser.connect(audioContext.destination);
+                        console.log(`Audio connected to analyser for step ${step}`);
+                    } catch(e) {
+                        console.error('Error connecting audio element to analyser:', e);
+                        // If createMediaElementSource fails (e.g., already connected), try direct connection
+                        try {
+                            analyser.connect(audioContext.destination);
+                        } catch(e2) {
+                            console.error('Error with direct analyser connection:', e2);
+                        }
+                    }
+                };
+                
+                // Try to connect when audio can play
+                audioElement.addEventListener('canplay', connectToAnalyser, { once: true });
+                audioElement.addEventListener('canplaythrough', connectToAnalyser, { once: true });
+                
+                // Also try to connect if audio is already loaded
+                if (audioElement.readyState >= 2) {
+                    connectToAnalyser();
+                }
+                
+                // Handle errors
+                audioElement.addEventListener('error', (e) => {
+                    console.error(`Error loading audio file ${audioPath} for step ${step}:`, e);
+                    const errorMsg = audioElement.error ? 
+                        `Code: ${audioElement.error.code}, Message: ${audioElement.error.message}` : 
+                        'Unknown error';
+                    alert(`无法加载音频文件: ${audioPath}\n错误: ${errorMsg}\n请检查文件路径是否正确。`);
+                    audioElement = null;
+                });
+                
+                // Preload the audio
+                audioElement.load();
+                
+            } catch(e) {
+                console.error(`Error creating audio element for ${audioPath} (step ${step}):`, e);
+                alert(`无法创建音频元素: ${audioPath}\n请检查文件路径是否正确。`);
+                audioElement = null;
+            }
+        }
+
+        // Fallback synthetic audio generation
+        function loadSyntheticAudio(step) {
+            // Create audio buffer with different characteristics for each step
+            const duration = 3; // seconds
+            const sampleRate = audioContext.sampleRate;
+            let buffer;
+            try {
+                buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
+            } catch(e) {
+                console.error('Error creating audio buffer:', e);
+                return;
+            }
+            const data = buffer.getChannelData(0);
+            
+            // Generate different tones based on step
+            if (step === 2) {
+                // Piano: Multiple harmonics
+                const fundamental = 523.25; // C5
+                for (let i = 0; i < buffer.length; i++) {
+                    const t = i / sampleRate;
+                    const envelope = Math.exp(-t * 2); // Decay envelope
+                    data[i] = (
+                        Math.sin(2 * Math.PI * fundamental * t) * 0.5 +
+                        Math.sin(2 * Math.PI * fundamental * 2 * t) * 0.3 +
+                        Math.sin(2 * Math.PI * fundamental * 3 * t) * 0.2
+                    ) * envelope * 0.3;
+                }
+            } else if (step === 3) {
+                // Whistle: Pure tone with slight vibrato
+                const fundamental = 880; // A5
+                for (let i = 0; i < buffer.length; i++) {
+                    const t = i / sampleRate;
+                    const vibrato = Math.sin(2 * Math.PI * 5 * t) * 10; // 5Hz vibrato
+                    data[i] = Math.sin(2 * Math.PI * (fundamental + vibrato) * t) * 0.3;
+                }
+            } else if (step === 4) {
+                // Drums: Percussive with broad spectrum
+                for (let i = 0; i < buffer.length; i++) {
+                    const t = i / sampleRate;
+                    const envelope = Math.exp(-t * 8); // Fast decay
+                    const noise = (Math.random() * 2 - 1) * 0.5;
+                    const tone = Math.sin(2 * Math.PI * 60 * t) * 0.3;
+                    data[i] = (noise + tone) * envelope * 0.4;
+                }
+            } else if (step === 5) {
+                // Bass: Low frequency with harmonics
+                const fundamental = 82.41; // E2
+                for (let i = 0; i < buffer.length; i++) {
+                    const t = i / sampleRate;
+                    const envelope = Math.exp(-t * 1.5); // Slow decay
+                    data[i] = (
+                        Math.sin(2 * Math.PI * fundamental * t) * 0.6 +
+                        Math.sin(2 * Math.PI * fundamental * 2 * t) * 0.3 +
+                        Math.sin(2 * Math.PI * fundamental * 3 * t) * 0.1
+                    ) * envelope * 0.4;
+                }
+            }
+
+            try {
+                audioSource = audioContext.createBufferSource();
+                audioSource.buffer = buffer;
+                audioSource.loop = true;
+                audioSource.connect(analyser);
+                analyser.connect(audioContext.destination);
+            } catch(e) {
+                console.error('Error creating audio source:', e);
+                audioSource = null;
+            }
+        }
+
+        async function togglePlayback() {
+            // STEP 1 uses mouse interaction only, no button playback
+            if (currentStep === 1) {
+                return;
+            }
+            
+            // Only STEP 2-5 can use the play button
+
+            const playButton = document.getElementById('play-button');
+
+            // Initialize audio context if not already done
+            if (!audioContext) {
+                initAudioContext();
+            }
+
+            // Resume audio context if suspended (required by browser autoplay policy)
+            if (audioContext.state === 'suspended') {
+                try {
+                    await audioContext.resume();
+                } catch(e) {
+                    console.error('Error resuming audio context:', e);
+                }
+            }
+
+            if (isPlaying) {
+                if (audioElement) {
+                    audioElement.pause();
+                    audioElement.currentTime = 0;
+                }
+                if (audioSource) {
+                    try {
+                        audioSource.disconnect();
+                    } catch(e) {}
+                    audioSource = null;
+                }
+                window.currentPlayLoop = null;
+                isPlaying = false;
+                if (playButton) {
+                    playButton.textContent = 'PLAY';
+                }
+            } else {
+                // Load and play audio
+                loadAudioFile(currentStep);
+                
+                try {
+                    // Ensure audio context is running
+                    if (audioContext && audioContext.state === 'suspended') {
+                        await audioContext.resume();
+                    }
+                    
+                    // Play the audio element
+                    if (audioElement) {
+                        console.log(`Attempting to play audio for step ${currentStep}, readyState: ${audioElement.readyState}`);
+                        
+                        const playAudio = async () => {
+                            try {
+                                // Ensure audio context is running
+                                if (audioContext && audioContext.state === 'suspended') {
+                                    console.log('Resuming suspended audio context...');
+                                    await audioContext.resume();
+                                    console.log('Audio context resumed');
+                                }
+                                
+                                // CRITICAL: Ensure audio is connected to analyser BEFORE playing
+                                if (!audioSource) {
+                                    console.log('Audio source not connected, connecting now...');
+                                    try {
+                                        audioSource = audioContext.createMediaElementSource(audioElement);
+                                        audioSource.connect(analyser);
+                                        analyser.connect(audioContext.destination);
+                                        console.log('Audio source connected');
+                                    } catch(e) {
+                                        console.warn('Audio connection warning:', e.message);
+                                    }
+                                } else {
+                                    console.log('Audio source already connected');
+                                }
+                                
+                                // Verify connection before playing
+                                if (!audioSource || !analyser) {
+                                    console.warn('Warning: Audio not properly connected to analyser');
+                                }
+                                
+                                console.log('Calling audioElement.play()...');
+                                await audioElement.play();
+                                isPlaying = true;
+                                if (playButton) {
+                                    playButton.textContent = 'STOP';
+                                }
+                                console.log(`✓ Audio playing successfully for step ${currentStep}`);
+                            } catch(e) {
+                                console.error('✗ Error playing audio:', e);
+                                console.error('Error details:', {
+                                    name: e.name,
+                                    message: e.message,
+                                    stack: e.stack
+                                });
+                                alert(`无法播放音频\n错误: ${e.message}\n\n可能的原因：\n1. 浏览器阻止了自动播放\n2. 音频文件未加载完成\n3. 音频上下文未初始化\n\n请检查浏览器控制台获取更多信息。`);
+                                isPlaying = false;
+                                if (playButton) {
+                                    playButton.textContent = 'PLAY';
+                                }
+                            }
+                        };
+                        
+                        // Check if audio is ready
+                        if (audioElement.readyState >= 2) {
+                            console.log('Audio is ready, playing immediately');
+                            await playAudio();
+                        } else {
+                            console.log('Audio not ready yet, waiting...');
+                            // Wait for audio to load
+                            const onCanPlay = async () => {
+                                console.log('Audio can play now');
+                                await playAudio();
+                            };
+                            audioElement.addEventListener('canplay', onCanPlay, { once: true });
+                            audioElement.addEventListener('canplaythrough', onCanPlay, { once: true });
+                            
+                            // Fallback: try after delay
+                            setTimeout(async () => {
+                                if (!isPlaying && audioElement) {
+                                    console.log('Fallback: trying to play after timeout');
+                                    if (audioElement.readyState >= 2) {
+                                        await playAudio();
+                                    } else {
+                                        console.error('Audio still not ready after timeout');
+                                        alert('音频加载超时，请检查文件路径和网络连接');
+                                    }
+                                }
+                            }, 2000);
+                        }
+                    } else {
+                        console.error('✗ Audio element not created');
+                        alert('音频元素未创建\n请先切换到对应的步骤，然后再点击播放');
+                    }
+                } catch(e) {
+                    console.error('Error starting audio:', e);
+                    isPlaying = false;
+                    if (playButton) {
+                        playButton.textContent = 'PLAY';
+                    }
+                }
+            }
+        }
+
+        // Show music step
+        function showMusicStep(stepNumber, element) {
+            currentStep = stepNumber;
+            
+            // Stop any playing audio
+            if (oscillator) {
+                try {
+                    oscillator.stop();
+                } catch(e) {}
+                try {
+                    oscillator.disconnect();
+                } catch(e) {}
+                oscillator = null;
+            }
+            if (audioSource) {
+                try {
+                    audioSource.stop();
+                } catch(e) {}
+                try {
+                    audioSource.disconnect();
+                } catch(e) {}
+                audioSource = null;
+            }
+            window.currentPlayLoop = null;
+            if (audioElement) {
+                audioElement.pause();
+                audioElement.currentTime = 0;
+                // Remove all event listeners by cloning the element
+                const newElement = audioElement.cloneNode();
+                audioElement = null;
+            }
+            isPlaying = false;
+            isMouseDown = false;
+            
+            const playButton = document.getElementById('play-button');
+            const audioControls = document.getElementById('audio-controls');
+            
+            if (playButton) {
+                playButton.textContent = 'PLAY';
+            }
+
+            // Update active step
+            document.querySelectorAll('.music-interaction-step').forEach(step => {
+                step.classList.remove('active');
+            });
+            if (element) {
+                element.classList.add('active');
+            } else {
+                const stepButtons = document.querySelectorAll('.music-interaction-step');
+                if (stepButtons[stepNumber - 1]) {
+                    stepButtons[stepNumber - 1].classList.add('active');
+                }
+            }
+
+            // Show/hide play button based on step
+            if (stepNumber === 1) {
+                if (audioControls) audioControls.style.display = 'none';
+            } else {
+                if (audioControls) audioControls.style.display = 'flex';
+            }
+
+            // Update title and description
+            const titles = [
+                'PITCH',
+                'PIANO',
+                'WHISTLE',
+                'DRUMS',
+                'BASS'
+            ];
+            const descriptions = [
+                'Hold and drag your mouse in the blank area to control pitch. The spectrum visualization shows frequency response in black and white.',
+                'A melodic sequence demonstrating harmonic progression. The spectrum shows the rich harmonic content of piano tones.',
+                'A clear, pure tone with minimal harmonics. The spectrum displays the fundamental frequency and its overtones.',
+                'Rhythmic patterns with percussive attacks. The spectrum reveals the broad frequency range of drum sounds.',
+                'Low-frequency foundation with deep resonance. The spectrum emphasizes the lower frequency bands.'
+            ];
+            // Title stays as "Understanding Sound" - don't change it
+            // const titleEl = document.getElementById('music-interaction-title');
+            // if (titleEl) {
+            //     titleEl.textContent = titles[stepNumber - 1];
+            // }
+            const descriptionEl = document.getElementById('music-description');
+            if (descriptionEl) {
+                descriptionEl.textContent = descriptions[stepNumber - 1];
+            }
+
+            // Initialize step-specific functionality
+            if (stepNumber === 1) {
+                // STEP 1: Only mouse interaction, no audio file loading
+                initPitchControl();
+            } else {
+                // STEP 2-5: Remove mouse control, only audio playback
+                removePitchControl();
+                // Pre-load audio files, but don't play automatically
+                // Audio will only play when user clicks PLAY button
+                try {
+                    loadAudioFile(stepNumber);
+                } catch(e) {
+                    console.error('Error loading audio:', e);
+                }
+            }
+        }
+
+        // Instruments section variables
+        let currentInstrument = 1;
+        let instrumentAudio = null;
+        
+        // Instrument SVG data
+        const instrumentSVGs = {
+            1: '<svg width="720" height="720" viewBox="0 0 720 720" xmlns="http://www.w3.org/2000/svg"><defs><style>.cls-1{fill:none;stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><rect class="cls-1" x="215.2" y="219.43" width="289.8" height="317.41"/><rect class="cls-1" x="209.67" y="183.84" width="300.67" height="35.46"/><line class="cls-1" x1="243.03" y1="183.16" x2="505" y2="536.84"/><line class="cls-1" x1="215.2" y1="536.84" x2="458.01" y2="183.16"/></svg>',
+            2: '<svg width="720" height="720" viewBox="0 0 720 720" xmlns="http://www.w3.org/2000/svg"><defs><style>.cls-1{fill:#fff;}.cls-1,.cls-2{stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><path class="cls-1" d="M414.52,191.19h-15.13v-11.25h-78.78v11.25h-14.99c-16.58,0-30.02,13.44-30.02,30.02v322.6c0,16.58,13.44,30.02,30.02,30.02h108.77c16.58,0,30.02-13.44,30.02-30.02V221.07c0-16.5-13.38-29.88-29.88-29.88Z"/><rect class="cls-2" x="314.98" y="146.17" width="90.03" height="33.76"/><circle class="cls-2" cx="301.27" cy="556.51" r="10.99"/><circle class="cls-2" cx="329.28" cy="558.04" r="10.99"/><circle class="cls-2" cx="358.1" cy="558.23" r="10.99"/><circle class="cls-2" cx="386.8" cy="557.65" r="10.99"/><circle class="cls-2" cx="418.62" cy="556.81" r="10.99"/><circle class="cls-2" cx="300.57" cy="529.24" r="10.99"/><circle class="cls-2" cx="328.58" cy="530.78" r="10.99"/><circle class="cls-2" cx="357.4" cy="530.96" r="10.99"/><circle class="cls-2" cx="386.11" cy="530.38" r="10.99"/><circle class="cls-2" cx="417.93" cy="529.54" r="10.99"/></svg>',
+            3: '<svg width="720" height="720" viewBox="0 0 720 720" xmlns="http://www.w3.org/2000/svg"><defs><style>.cls-1{stroke-width:4px;}.cls-1,.cls-2{fill:#fff;}.cls-1,.cls-2,.cls-3{stroke:#000;stroke-miterlimit:10;}.cls-3{fill:none;}</style></defs><rect class="cls-1" x="228.2" y="256.94" width="356.15" height="206.12"/><polygon class="cls-1" points="587.14 334.4 587.14 344.58 224.89 344.58 224.89 334.4 173.01 334.4 173.01 344.58 80.98 344.58 80.98 375.42 173.01 375.42 173.01 385.6 224.89 385.6 224.89 375.42 587.14 375.42 587.14 385.6 639.02 385.6 639.02 334.4 587.14 334.4"/><circle class="cls-2" cx="200.13" cy="360" r="4.3"/><line class="cls-3" x1="200.13" y1="356.95" x2="200.13" y2="363.05"/><line class="cls-3" x1="197.24" y1="360.03" x2="203.02" y2="359.97"/><circle class="cls-2" cx="613.08" cy="360" r="4.3"/><line class="cls-3" x1="613.08" y1="356.95" x2="613.08" y2="363.05"/><line class="cls-3" x1="610.2" y1="360.03" x2="615.97" y2="359.97"/><line class="cls-3" x1="204.43" y1="360" x2="607.7" y2="360"/></svg>',
+            4: '<svg width="720" height="720" viewBox="0 0 720 720" xmlns="http://www.w3.org/2000/svg"><defs><style>.cls-1{fill:#fff;stroke:#000;stroke-miterlimit:10;stroke-width:4px;}</style></defs><polygon class="cls-1" points="650.56 379.7 69.44 379.7 69.44 340.3 626.42 340.3 650.56 379.7"/><circle class="cls-1" cx="114.43" cy="360" r="11.46"/><circle class="cls-1" cx="210.36" cy="360" r="11.46"/><circle class="cls-1" cx="321.69" cy="360" r="11.46"/><circle class="cls-1" cx="444.76" cy="360" r="11.46"/></svg>'
+        };
+        
+        // Instrument descriptions
+        const instrumentDescriptions = {
+            1: '<p><strong>Materials:</strong> Plastic bucket/metal bucket, plastic sheet/leather/thick rubber, rope/wire, tape</p><p><strong>Steps:</strong></p><ul><li>Clean the bucket body, ensure edges are smooth without burrs</li><li>Cut the membrane material into a circle 10-15cm larger than the bucket opening</li><li>Soak the membrane material in water (if using leather, soak for 2 hours)</li><li>Pull the membrane tight over the bucket opening, tie with rope below the rim</li><li>Create a Z-shaped tension system for adjustable tightness</li><li>Air dry for 24 hours, maintaining tension during this period</li></ul><p><strong>Pitch adjustment techniques:</strong> Adding different amounts of water inside the bucket changes pitch; heating the drumhead raises the tone; humid environments lower the pitch</p>',
+            2: '<p><strong>Materials:</strong> Plastic bottle, bottle caps/small stones/rice/sand, wooden stick, tape</p><p><strong>Steps:</strong></p><ul><li>Drill a hole in the center of the bottle bottom, insert the wooden stick</li><li>Fill with 1/3 capacity of filler material (different materials produce different tones)</li><li>Fix the stick with hot glue or strong adhesive</li><li>Seal the bottle opening, decorate the appearance</li></ul><p><strong>Filler material tone guide:</strong></p><ul><li>Rice/beans: Soft rustling sound</li><li>Small stones: Clear and bright</li><li>Sand: Continuous and fine</li><li>Metal beads: Bright and sharp</li></ul>',
+            3: '<p><strong>Materials:</strong> Shoe box/wooden box, wooden stick (1 meter), fishing line/steel wire, screws, wooden blocks</p><p><strong>Detailed steps:</strong></p><ul><li>Open a small hole in the center of each end of the box</li><li>Thread the stick through the box, leaving 20cm at one end for the headstock</li><li>Drill holes in the headstock end to install tuning pegs (screws)</li><li>Place small wooden blocks at both ends of the box as bridges (to raise the strings)</li><li>Tighten the string, tie one end to the tuning peg, fix the other end at the tail of the stick</li><li>Mark fret positions on the stick with a knife</li></ul><p><strong>Playing techniques:</strong> Press different positions to change pitch; can use bottleneck slide; plucking position affects tone</p>',
+            4: '<p><strong>Material selection:</strong></p><ul><li>Bamboo diameter 1.5-2.5cm, length 30-40cm</li><li>Bamboo wall thickness 3-5mm is optimal</li><li>Naturally air-dried old bamboo has better sound quality</li></ul><p><strong>Precise construction steps:</strong></p><ul><li><strong>Prepare bamboo tube:</strong> Select a bamboo section between two nodes, keep one end node as the head</li><li><strong>Open blow hole:</strong> 2-2.5cm from the blocked end, open an oval blow hole (8×10mm)</li><li><strong>Open membrane hole (optional):</strong> 2cm below the blow hole, attach bamboo membrane or thin plastic to enhance tone</li><li><strong>Open finger holes:</strong><ul><li>First hole: approximately 12cm from blow hole</li><li>Subsequent holes spaced 1.5-2cm apart</li><li>Open 6 finger holes total, diameter 6-8mm</li><li>Use heated wire to open holes for smoother edges</li></ul></li></ul><p><strong>Tuning methods:</strong></p><ul><li>Hole too large: Partially seal with wax</li><li>Pitch too high: Enlarge distal holes</li><li>Pitch too low: Enlarge proximal holes</li></ul>'
+        };
+        
+        // Instrument titles
+        const instrumentTitles = {
+            1: 'BUCKET DRUM',
+            2: 'BOTTLE CAP SHAKER',
+            3: 'SHOE BOX BASS',
+            4: 'BAMBOO FLUTE'
+        };
+        
+        // Show instrument function
+        function showInstrument(instrumentNumber, element) {
+            currentInstrument = instrumentNumber;
+            
+            // Update active step
+            document.querySelectorAll('#instruments .music-interaction-step').forEach(step => {
+                step.classList.remove('active');
+            });
+            if (element) {
+                element.classList.add('active');
+            } else {
+                const stepButtons = document.querySelectorAll('#instruments .music-interaction-step');
+                if (stepButtons[instrumentNumber - 1]) {
+                    stepButtons[instrumentNumber - 1].classList.add('active');
+                }
+            }
+            
+            // Update SVG
+            const imageContainer = document.getElementById('instrument-image');
+            if (imageContainer && instrumentSVGs[instrumentNumber]) {
+                imageContainer.innerHTML = instrumentSVGs[instrumentNumber];
+                console.log('SVG inserted for instrument', instrumentNumber);
+            } else {
+                console.error('Failed to insert SVG:', {
+                    container: imageContainer,
+                    svg: instrumentSVGs[instrumentNumber],
+                    number: instrumentNumber
+                });
+            }
+            
+            // Update title
+            const titleEl = document.getElementById('instrument-title');
+            if (titleEl) {
+                titleEl.textContent = instrumentTitles[instrumentNumber];
+            }
+            
+            // Update description
+            const descriptionEl = document.getElementById('instrument-description');
+            if (descriptionEl && instrumentDescriptions[instrumentNumber]) {
+                descriptionEl.innerHTML = instrumentDescriptions[instrumentNumber];
+            }
+        }
+        
+        // Play instrument sound when clicking on SVG
+        function playInstrumentSound(instrumentNumber) {
+            // Stop any currently playing instrument sound
+            if (instrumentAudio) {
+                instrumentAudio.pause();
+                instrumentAudio.currentTime = 0;
+                instrumentAudio = null;
+            }
+            
+            // Audio file paths for instruments (matching actual file names in asset folder)
+            const instrumentSounds = {
+                1: 'asset/BUCKET DRUM.wav',  // Bucket Drum
+                2: 'asset/BOTTLE CAP SHAKER.wav', // Bottle Cap Shaker
+                3: 'asset/SHOE BOX BASS.wav',  // Shoe Box Bass
+                4: 'asset/BAMBOO FLUTE.wav'  // Bamboo Flute
+            };
+            
+            const audioPath = instrumentSounds[instrumentNumber];
+            if (!audioPath) {
+                console.error(`No audio file specified for instrument ${instrumentNumber}`);
+                return;
+            }
+            
+            // Create and play audio
+            instrumentAudio = new Audio(audioPath);
+            instrumentAudio.crossOrigin = "anonymous";
+            instrumentAudio.play().catch(e => {
+                console.error('Error playing instrument sound:', e);
+            });
+            
+            // Clean up when audio ends
+            instrumentAudio.addEventListener('ended', () => {
+                instrumentAudio = null;
+            });
+        }
+
+        // Function to update active nav item based on scroll position
+        function updateActiveNavItem() {
+            const sections = ['introduction', 'music-interaction', 'instruments'];
+            const scrollPosition = window.scrollY + window.innerHeight / 2;
+            
+            let activeSection = null;
+            
+            sections.forEach(sectionId => {
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    const sectionTop = section.offsetTop;
+                    const sectionBottom = sectionTop + section.offsetHeight;
+                    
+                    if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
+                        activeSection = sectionId;
+                    }
+                }
+            });
+            
+            // Update navigation items
+            document.querySelectorAll('.step-nav-item').forEach(item => {
+                item.classList.remove('active');
+                const dataStep = item.getAttribute('data-step');
+                if (dataStep === activeSection) {
+                    item.classList.add('active');
+                } else if (dataStep === 'instruments' && 
+                          (activeSection === 'instrument-1' || activeSection === 'instrument-2' || 
+                           activeSection === 'instrument-3' || activeSection === 'instrument-4')) {
+                    // Highlight INSTRUMENTS nav item when any instrument section is active
+                    item.classList.add('active');
+                }
+            });
+        }
+
+        // Add scroll listener to update active nav item
+        document.addEventListener('DOMContentLoaded', function() {
+            window.addEventListener('scroll', updateActiveNavItem);
+            // Initial check
+            updateActiveNavItem();
+            
+            // Initialize canvas and start drawing
+            const canvas = document.getElementById('spectrum-canvas');
+            if (canvas) {
+                // Set canvas size based on container
+                const resizeCanvas = () => {
+                    const container = canvas.parentElement;
+                    if (container && container.offsetWidth > 0) {
+                        const size = Math.min(container.offsetWidth - 40, window.innerHeight * 0.5);
+                        canvas.width = size;
+                        canvas.height = size;
+                    }
+                };
+                
+                // Wait a bit for layout to settle
+                setTimeout(() => {
+                    resizeCanvas();
+                    window.addEventListener('resize', resizeCanvas);
+                    drawSpectrum();
+                }, 100);
+            }
+            
+            // Initialize step 1
+            setTimeout(() => {
+                showMusicStep(1, document.querySelector('.music-interaction-step'));
+            }, 200);
+            
+            // Initialize first instrument
+            setTimeout(() => {
+                const firstStep = document.querySelector('#instruments .music-interaction-step');
+                if (firstStep) {
+                    showInstrument(1, firstStep);
+                } else {
+                    console.error('Could not find instrument step element');
+                }
+            }, 200);
+        });
+    </script>
+</body>
+</html>
